@@ -1,0 +1,10 @@
+[submodule "external/pico-sdk"]
+	path = external/pico-sdk
+	url = https://github.com/raspberrypi/pico-sdk.git
+
+[submodule "external/pico-displayDrivs"]
+	path = external/pico-displayDrivs
+	url = https://github.com/rprouse/pico-displayDrivs.git
+[submodule "external/pico-extras"]
+	path = external/pico-extras
+	url = https://github.com/raspberrypi/pico-extras.git
