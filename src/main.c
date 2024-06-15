@@ -1,120 +1,92 @@
+#include "hardware/gpio.h"
+#include "hardware/i2c.h"
+#include "pico/stdlib.h"
+#include "pico/time.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "bsp/board.h"
 #include "tusb.h"
-
 #include "usb_descriptors.h"
 
-void hid_task(void);
+#include <squirrel.h>
 
-int main(void) {
-  board_init();
-
-  // init device stack on configured roothub port
-  tud_init(BOARD_TUD_RHPORT);
-
-  while (1) {
-    tud_task(); // tinyusb device task
-
-    hid_task();
-  }
-}
-
-// Invoked when device is mounted
-void tud_mount_cb(void) {}
-
-// Invoked when device is unmounted
-void tud_umount_cb(void) {}
-
-// Invoked when usb bus is suspended
-// remote_wakeup_en : if host allow us  to perform remote wakeup
-// Within 7ms, device must draw an average of current less than 2.5 mA from bus
-void tud_suspend_cb(bool remote_wakeup_en) { (void)remote_wakeup_en; }
-
-// Invoked when usb bus is resumed
-void tud_resume_cb(void) {
-  // (mounted)
-}
-
-static void send_hid_report(uint8_t report_id, uint32_t btn) {
+// Send a HID report with the given keycodes to the host.
+static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
   // skip if hid is not ready yet
-  if (!tud_hid_ready())
+  if (!tud_hid_ready()) {
+    printf("HID not ready\n");
     return;
-
-  switch (report_id) {
-  case REPORT_ID_KEYBOARD: {
-    // use to avoid send multiple consecutive zero report for keyboard
-    static bool has_keyboard_key = false;
-
-    if (btn) {
-      uint8_t keycode[6] = {0};
-      keycode[0] = HID_KEY_A;
-
-      tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, keycode);
-      has_keyboard_key = true;
-    } else {
-      // send empty key report if previously has key pressed
-      if (has_keyboard_key)
-        tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
-      has_keyboard_key = false;
-    }
-  } break;
-
-  case REPORT_ID_MOUSE: {
-    int8_t const delta = 5;
-
-    // no button, right + down, no scroll, no pan
-    tud_hid_mouse_report(REPORT_ID_MOUSE, 0x00, delta, delta, 0, 0);
-  } break;
-
-  case REPORT_ID_CONSUMER_CONTROL: {
-    // use to avoid send multiple consecutive zero report
-    static bool has_consumer_key = false;
-
-    if (btn) {
-      // volume down
-      uint16_t volume_down = HID_USAGE_CONSUMER_VOLUME_DECREMENT;
-      tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &volume_down, 2);
-      has_consumer_key = true;
-    } else {
-      // send empty key report (release key) if previously has key pressed
-      uint16_t empty_key = 0;
-      if (has_consumer_key)
-        tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &empty_key, 2);
-      has_consumer_key = false;
-    }
-  } break;
-
-  default:
-    break;
-  }
+  };
+  printf("sending HID.\n");
+  tud_hid_keyboard_report(
+      REPORT_ID_KEYBOARD, modifiers,
+      keycode_assembly); // Send the report. A report can be for a keyboard,
+                         // mouse, joystick etc. In a keyboard report, the first
+                         // argument is the report ID, the second is the
+                         // modifiers (ctrl, shift, alt etc.). These are stored
+                         // as a bitfield. The third is the keycodes to send.
+                         // All keycodes that are sent are considered currently
+                         // pressed. Detecting key presses and releases is done
+                         // by the host. The only requirement from the firmware
+                         // is that it sends a report with all currently pressed
+                         // keys every 10ms.
+  printf("done sending HID.\n");
 }
 
-// Every 10ms, we will sent 1 report for each HID profile (keyboard, mouse etc
-// ..) tud_hid_report_complete_cb() is used to send the next report after
-// previous one is complete
+// Send a HID report with no keycodes to the host.
+static void send_hid_kbd_null() {
+  // skip if hid is not ready yet
+  if (!tud_hid_ready()) {
+    return;
+  };
+  tud_hid_keyboard_report(
+      REPORT_ID_KEYBOARD, modifiers,
+      NULL); // Send a report with no keycodes. (no keys pressed)
+}
+
+// Every 10ms, we will sent 1 report for each HID device. In this case, we only
+// have 1 HID device, the keyboard.
 void hid_task(void) {
   // Poll every 10ms
-  const uint32_t interval_ms = 10;
-  static uint32_t start_ms = 0;
+  const uint32_t interval_ms = 10;    // Time between each report
+  static uint32_t next_report_ms = 0; // Time of next report
 
-  if (board_millis() - start_ms < interval_ms)
-    return; // not enough time
-  start_ms += interval_ms;
+  if (board_millis() - next_report_ms < interval_ms) { // If we are running too
+                                                       // fast, return.
+    return;
+  };
+  next_report_ms += interval_ms; // Schedule next report
 
-  uint32_t const btn = board_button_read();
+  // Reports are sent in a chain, with one report for each HID device.
 
-  // Remote wakeup
-  if (tud_suspended() && btn) {
-    // Wake up host if we are in suspend mode
-    // and REMOTE_WAKEUP feature is enabled by host
-    tud_remote_wakeup();
+  // First, send the keyboard report. In a keyboard report, 6 keycodes can be
+  // registered as pressed at once. A keycode is a number that represents a key
+  // (such as 'a', 'b' or capslock).
+
+  uint8_t keycode_assembly[6] = {
+      0}; // The keycodes to send in the report. A max
+          // of 6 keycodes can be regisered as currently pressed at once.
+  uint_fast8_t index = 0; // The index of the keycode_assembly array.
+
+  for (int i = 0; i <= 0xFF; i++) { // Loop through all keycodes.
+    if (active_keycodes[i]) { // If the keycode is registered as active (pressed
+                              // down),
+      keycode_assembly[index] = i; // Add the keycode to the assembly array.
+      index++;                     // Increment the index of the assembly array.
+      printf("Keycode: %d\n", i);
+      if (index >= 6) { // If the report is full, stop adding keycodes. (this
+                        // ignores any keycodes after the 6th active keycode)
+        break;
+      }
+    }
+  }
+  if (index > 0) { // If there are any keycodes to send, send them.
+    printf("starting sending HID.\n");
+    send_hid_kbd_codes(keycode_assembly);
   } else {
-    // Send the 1st of report chain, the rest will be sent by
-    // tud_hid_report_complete_cb()
-    send_hid_report(REPORT_ID_KEYBOARD, btn);
+    printf("Sending nothing\n");
+    send_hid_kbd_null();
   }
 }
 
@@ -123,14 +95,10 @@ void hid_task(void) {
 // Note: For composite reports, report[0] is report ID
 void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
                                 uint16_t len) {
+  // This callback is not used, but is required by tinyusb.
   (void)instance;
+  (void)report;
   (void)len;
-
-  uint8_t next_report_id = report[0] + 1u;
-
-  if (next_report_id < REPORT_ID_COUNT) {
-    send_hid_report(next_report_id, board_button_read());
-  }
 }
 
 // Invoked when received GET_REPORT control request
@@ -139,13 +107,12 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
 uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
                                hid_report_type_t report_type, uint8_t *buffer,
                                uint16_t reqlen) {
-  // TODO not Implemented
+  // This callback is not used, but is required by tinyusb.
   (void)instance;
   (void)report_id;
   (void)report_type;
   (void)buffer;
   (void)reqlen;
-
   return 0;
 }
 
@@ -154,22 +121,98 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
                            hid_report_type_t report_type, uint8_t const *buffer,
                            uint16_t bufsize) {
+  // This callback is not used, but is required by tinyusb.
+  // Here you can receive data sent from the host to the device (such as
+  // capslock LEDs, etc.)
   (void)instance;
+  (void)report_id;
+  (void)report_type;
+  (void)buffer;
+  (void)bufsize;
+}
 
-  if (report_type == HID_REPORT_TYPE_OUTPUT) {
-    // Set keyboard LED e.g Capslock, Numlock etc...
-    if (report_id == REPORT_ID_KEYBOARD) {
-      // bufsize should be (at least) 1
-      if (bufsize < 1)
-        return;
+const int KEYBOARD_X = 1;
+const int KEYBOARD_Y = 1;
 
-      uint8_t const kbd_leds = buffer[0];
+void test_down(struct key *key, uint_fast8_t keycode, uint_fast8_t layer,
+               bool (*layers)[16], uint_fast8_t *default_layer) {
+  (void)key;
+  (void)layer;
+  active_keycodes[keycode] = true; // Mark the keycode as active.
+}
+void test_up(struct key *key, uint_fast8_t keycode, uint_fast8_t layer,
+             bool (*layers)[16], uint_fast8_t *default_layer) {
+  (void)key;
+  (void)layer;
+  active_keycodes[keycode] = false; // Mark the keycode as active.
+}
+struct key key1 = {
+    .rising = {test_down},
+    .risingargs = {HID_KEY_C},
+    .falling = {test_up},
+    .fallingargs = {HID_KEY_C},
+};
 
-      if (kbd_leds & KEYBOARD_LED_CAPSLOCK) {
-        // Capslock On: disable blink, turn led on
-      } else {
-        // Caplocks Off: back to normal blink
-      }
-    }
+struct key *keys[1] = {&key1};
+const int PCA9555_ADDR = 0b0100000;
+const int PCA9555_CMD_SET_INPUTS_0 = _u(0x00);
+const int PCA9555_CMD_SET_INPUTS_1 = _u(0x01);
+const int PCA9555_CMD_SET_OUTPUTS_0 = _u(0x02);
+const int PCA9555_CMD_SET_OUTPUTS_1 = _u(0x03);
+const int PCA9555_CMD_POLARITY_INVERT_0 = _u(0x04);
+const int PCA9555_CMD_POLARITY_INVERT_1 = _u(0x05);
+const int PCA9555_CMD_CONFIGURE_0 = _u(0x06);
+const int PCA9555_CMD_CONFIGURE_1 = _u(0x07);
+
+void check_keys() {
+  uint8_t buf[2] = {PCA9555_CMD_SET_OUTPUTS_0, 0b11111111};
+  i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf, 2, false);
+
+  uint8_t buf2[2] = {PCA9555_CMD_SET_OUTPUTS_1, 0b11111111};
+  i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf2, 2, false);
+  //  buf[1] = buf[1] << 1;
+  //  for (int y = 0; y < KEYBOARD_Y; y++) {
+  bool r1 = gpio_get(1);
+  check_key(keys[0], r1, &layers, &default_layer);
+  //  }
+  //}
+}
+
+void pca9555_init(void) {
+  stdio_init_all();
+  uart_init(uart0, 115200);
+
+  i2c_init(&i2c1_inst, 100000);
+
+  gpio_set_function(6, GPIO_FUNC_I2C);
+  gpio_set_function(7, GPIO_FUNC_I2C);
+  gpio_pull_up(6);
+  gpio_pull_up(7);
+
+  uint8_t buf[2] = {PCA9555_CMD_CONFIGURE_0, 0b00000000};
+  i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf, 2, false);
+  buf[0] = PCA9555_CMD_CONFIGURE_1;
+  i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf, 2, false);
+
+  gpio_init(14);
+  gpio_set_dir(14, GPIO_IN);
+  gpio_pull_down(14);
+
+  gpio_init(25);
+  gpio_set_dir(25, GPIO_OUT);
+  gpio_put(25, 0);
+};
+
+// The main function, runs tinyusb and the key scanning loop.
+int main(void) {
+  board_init();               // Initialize the pico board
+  tud_init(BOARD_TUD_RHPORT); // Initialize tinyusb device stack
+  tusb_init();                // Initialize tinyusb
+  pca9555_init();             // Initialize the PCA9555 I2C GPIO expander
+
+  while (true) {
+    check_keys(); // Check the keys on the keyboard for their state.
+    tud_task();   // tinyusb device task.
+    hid_task();   // Send HID reports to the host.
   }
 }
