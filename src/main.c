@@ -15,10 +15,8 @@
 static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
   // skip if hid is not ready yet
   if (!tud_hid_ready()) {
-    printf("HID not ready\n");
     return;
   };
-  printf("sending HID.\n");
   tud_hid_keyboard_report(
       REPORT_ID_KEYBOARD, modifiers,
       keycode_assembly); // Send the report. A report can be for a keyboard,
@@ -31,7 +29,6 @@ static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
                          // by the host. The only requirement from the firmware
                          // is that it sends a report with all currently pressed
                          // keys every 10ms.
-  printf("done sending HID.\n");
 }
 
 // Send a HID report with no keycodes to the host.
@@ -62,7 +59,7 @@ void hid_task(void) {
 
   // First, send the keyboard report. In a keyboard report, 6 keycodes can be
   // registered as pressed at once. A keycode is a number that represents a key
-  // (such as 'a', 'b' or capslock).
+  // (such as 'a', 'b', '1', '2', etc).
 
   uint8_t keycode_assembly[6] = {
       0}; // The keycodes to send in the report. A max
@@ -74,18 +71,16 @@ void hid_task(void) {
                               // down),
       keycode_assembly[index] = i; // Add the keycode to the assembly array.
       index++;                     // Increment the index of the assembly array.
-      printf("Keycode: %d\n", i);
       if (index >= 6) { // If the report is full, stop adding keycodes. (this
                         // ignores any keycodes after the 6th active keycode)
         break;
       }
     }
   }
-  if (index > 0) { // If there are any keycodes to send, send them.
-    printf("starting sending HID.\n");
+  // If there are any keycodes to send, send them.
+  if (index > 0) {
     send_hid_kbd_codes(keycode_assembly);
   } else {
-    printf("Sending nothing\n");
     send_hid_kbd_null();
   }
 }
@@ -131,29 +126,43 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
   (void)bufsize;
 }
 
+// Width and height of the keyboard matrix.
 const int KEYBOARD_X = 1;
 const int KEYBOARD_Y = 1;
 
-void test_down(struct key *key, uint_fast8_t keycode, uint_fast8_t layer,
-               bool (*layers)[16], uint_fast8_t *default_layer) {
-  (void)key;
-  (void)layer;
-  active_keycodes[keycode] = true; // Mark the keycode as active.
-}
-void test_up(struct key *key, uint_fast8_t keycode, uint_fast8_t layer,
-             bool (*layers)[16], uint_fast8_t *default_layer) {
-  (void)key;
-  (void)layer;
-  active_keycodes[keycode] = false; // Mark the keycode as active.
-}
 struct key key1 = {
-    .rising = {test_down},
+    .rising = {key_down},
+    .risingargs = {HID_KEY_A},
+    .falling = {key_up},
+    .fallingargs = {HID_KEY_A},
+};
+struct key key2 = {
+    .rising = {key_down},
+    .risingargs = {HID_KEY_B},
+    .falling = {key_up},
+    .fallingargs = {HID_KEY_B},
+};
+struct key key3 = {
+    .rising = {key_down},
     .risingargs = {HID_KEY_C},
-    .falling = {test_up},
+    .falling = {key_up},
     .fallingargs = {HID_KEY_C},
 };
 
-struct key *keys[1] = {&key1};
+// The default layer of the keyboard.
+struct key *keys[5][15] = {
+    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
+     &key2, &key3, &key1, &key2, &key3},
+    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
+     &key2, &key3, &key1, &key2, &key3},
+    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
+     &key2, &key3, &key1, &key2, &key3},
+    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
+     &key2, &key3, &key1, &key2, &key3},
+    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
+     &key2, &key3, &key1, &key2, &key3},
+};
+
 const int PCA9555_ADDR = 0b0100000;
 const int PCA9555_CMD_SET_INPUTS_0 = _u(0x00);
 const int PCA9555_CMD_SET_INPUTS_1 = _u(0x01);
@@ -165,48 +174,59 @@ const int PCA9555_CMD_CONFIGURE_0 = _u(0x06);
 const int PCA9555_CMD_CONFIGURE_1 = _u(0x07);
 
 void check_keys() {
-  uint8_t buf[2] = {PCA9555_CMD_SET_OUTPUTS_0, 0b11111111};
-  i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf, 2, false);
+  uint16_t column_outputs = 0b0000000000000001;
+  uint8_t outputs_0[2] = {PCA9555_CMD_SET_OUTPUTS_0, 0b00000000};
+  uint8_t outputs_1[2] = {PCA9555_CMD_SET_OUTPUTS_1, 0b00000000};
+  for (int x = 0; x < KEYBOARD_X; x++) {
+    outputs_0[1] = column_outputs & 0xFF;
+    outputs_1[1] = (column_outputs >> 8) & 0xFF;
 
-  uint8_t buf2[2] = {PCA9555_CMD_SET_OUTPUTS_1, 0b11111111};
-  i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf2, 2, false);
-  //  buf[1] = buf[1] << 1;
-  //  for (int y = 0; y < KEYBOARD_Y; y++) {
-  bool r1 = gpio_get(1);
-  check_key(keys[0], r1, &layers, &default_layer);
-  //  }
-  //}
+    i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, outputs_0, 2, false);
+    i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, outputs_1, 2, false);
+
+    column_outputs = column_outputs << 1;
+
+    bool r1 = gpio_get(1);
+    check_key(keys[x][0], r1, &layers, &default_layer);
+    bool r2 = gpio_get(0);
+    check_key(keys[x][1], r2, &layers, &default_layer);
+    bool r3 = gpio_get(29);
+    check_key(keys[x][2], r3, &layers, &default_layer);
+    bool r4 = gpio_get(28);
+    check_key(keys[x][3], r4, &layers, &default_layer);
+    bool r5 = gpio_get(27);
+    check_key(keys[x][4], r5, &layers, &default_layer);
+  }
 }
 
 void pca9555_init(void) {
   stdio_init_all();
   uart_init(uart0, 115200);
 
+  // Initialize the I2C bus.
   i2c_init(&i2c1_inst, 100000);
 
+  // Configure the I2C pins.
   gpio_set_function(6, GPIO_FUNC_I2C);
   gpio_set_function(7, GPIO_FUNC_I2C);
   gpio_pull_up(6);
   gpio_pull_up(7);
 
+  // Configure the PCA9555's pins as outputs.
   uint8_t buf[2] = {PCA9555_CMD_CONFIGURE_0, 0b00000000};
   i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf, 2, false);
   buf[0] = PCA9555_CMD_CONFIGURE_1;
   i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf, 2, false);
-
-  gpio_init(14);
-  gpio_set_dir(14, GPIO_IN);
-  gpio_pull_down(14);
-
-  gpio_init(25);
-  gpio_set_dir(25, GPIO_OUT);
-  gpio_put(25, 0);
 };
 
 // The main function, runs tinyusb and the key scanning loop.
 int main(void) {
+  // Configure the board's LED pin as an output for debugging.
+  gpio_init(25);
+  gpio_set_dir(25, GPIO_OUT);
+
   board_init();               // Initialize the pico board
-  tud_init(BOARD_TUD_RHPORT); // Initialize tinyusb device stack
+  tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
   tusb_init();                // Initialize tinyusb
   pca9555_init();             // Initialize the PCA9555 I2C GPIO expander
 
