@@ -127,8 +127,8 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
 }
 
 // Width and height of the keyboard matrix.
-const int KEYBOARD_X = 1;
-const int KEYBOARD_Y = 1;
+const int KEYBOARD_X = 15;
+const int KEYBOARD_Y = 5;
 
 struct key key1 = {
     .rising = {key_down},
@@ -150,17 +150,22 @@ struct key key3 = {
 };
 
 // The default layer of the keyboard.
-struct key *keys[5][15] = {
-    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
-     &key2, &key3, &key1, &key2, &key3},
-    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
-     &key2, &key3, &key1, &key2, &key3},
-    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
-     &key2, &key3, &key1, &key2, &key3},
-    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
-     &key2, &key3, &key1, &key2, &key3},
-    {&key1, &key2, &key3, &key1, &key2, &key3, &key1, &key2, &key3, &key1,
-     &key2, &key3, &key1, &key2, &key3},
+struct key* keys[15][5] = {
+  {&key1, &key1,&key1,&key1,&key1},
+  {&key2, &key2,&key2,&key2,&key2},
+  {&key3, &key3,&key3,&key3,&key3},
+  {&key1, &key1,&key1,&key1,&key1},
+  {&key2, &key2,&key2,&key2,&key2},
+  {&key3, &key3,&key3,&key3,&key3},
+  {&key1, &key1,&key1,&key1,&key1},
+  {&key2, &key2,&key2,&key2,&key2},
+  {&key3, &key3,&key3,&key3,&key3},
+  {&key1, &key1,&key1,&key1,&key1},
+  {&key2, &key2,&key2,&key2,&key2},
+  {&key3, &key3,&key3,&key3,&key3},
+  {&key1, &key1,&key1,&key1,&key1},
+  {&key2, &key2,&key2,&key2,&key2},
+  {&key3, &key3,&key3,&key3,&key3},
 };
 
 const int PCA9555_ADDR = 0b0100000;
@@ -174,35 +179,43 @@ const int PCA9555_CMD_CONFIGURE_0 = _u(0x06);
 const int PCA9555_CMD_CONFIGURE_1 = _u(0x07);
 
 void check_keys() {
-  uint16_t column_outputs = 0b0000000000000001;
-  uint8_t outputs_0[2] = {PCA9555_CMD_SET_OUTPUTS_0, 0b00000000};
+  uint16_t column_outputs = 0b0000000000000001; // Start at the leftmost column
+  // PCA9555 uses two sets of 8-bit outputs
+  uint8_t outputs_0[2] = {PCA9555_CMD_SET_OUTPUTS_0, 0b00000000}; 
   uint8_t outputs_1[2] = {PCA9555_CMD_SET_OUTPUTS_1, 0b00000000};
+  // Loop through all columns
   for (int x = 0; x < KEYBOARD_X; x++) {
+    // Split the column_outputs into 2 sets of 8-bit numbers.
     outputs_0[1] = column_outputs & 0xFF;
     outputs_1[1] = (column_outputs >> 8) & 0xFF;
 
+    // Write the two 8-bit numbers
     i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, outputs_0, 2, false);
     i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, outputs_1, 2, false);
 
-    column_outputs = column_outputs << 1;
-
+    // Get the state of all keys in the column
     bool r1 = gpio_get(1);
-    check_key(keys[x][0], r1, &layers, &default_layer);
     bool r2 = gpio_get(0);
-    check_key(keys[x][1], r2, &layers, &default_layer);
     bool r3 = gpio_get(29);
-    check_key(keys[x][2], r3, &layers, &default_layer);
     bool r4 = gpio_get(28);
-    check_key(keys[x][3], r4, &layers, &default_layer);
     bool r5 = gpio_get(27);
+    // Check the state of each key in the column for changes.
+    check_key(keys[x][0], r1, &layers, &default_layer);
+    check_key(keys[x][1], r2, &layers, &default_layer);
+    check_key(keys[x][2], r3, &layers, &default_layer);
+    check_key(keys[x][3], r4, &layers, &default_layer);
     check_key(keys[x][4], r5, &layers, &default_layer);
+
+    // If all possible columns have been checked, return.
+    if (column_outputs == 0b1000000000000000) {
+      return;
+    }
+    // Check the next column
+    column_outputs = column_outputs << 1;
   }
 }
 
 void pca9555_init(void) {
-  stdio_init_all();
-  uart_init(uart0, 115200);
-
   // Initialize the I2C bus.
   i2c_init(&i2c1_inst, 100000);
 
@@ -219,12 +232,18 @@ void pca9555_init(void) {
   i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf, 2, false);
 };
 
-// The main function, runs tinyusb and the key scanning loop.
-int main(void) {
+void debugging_init(void) {
   // Configure the board's LED pin as an output for debugging.
   gpio_init(25);
   gpio_set_dir(25, GPIO_OUT);
 
+  // stdio_init_all();
+  uart_init(uart0, 115200); // UART debugging
+}
+
+// The main function, runs tinyusb and the key scanning loop.
+int main(void) {
+  debugging_init();           // Initialize debugging utilities
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
   tusb_init();                // Initialize tinyusb
