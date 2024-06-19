@@ -6,9 +6,9 @@
 #include <string.h>
 
 #include "bsp/board.h"
+#include "squirrel_constructors.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
-
 #include <squirrel.h>
 
 // Send a HID report with the given keycodes to the host.
@@ -130,61 +130,139 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
 const int KEYBOARD_X = 15;
 const int KEYBOARD_Y = 5;
 
-struct key key1 = {
-    .rising = {key_down},
-    .risingargs = {HID_KEY_A},
-    .falling = {key_up},
-    .fallingargs = {HID_KEY_A},
-};
-struct key key2 = {
-    .rising = {key_down},
-    .risingargs = {HID_KEY_B},
-    .falling = {key_up},
-    .fallingargs = {HID_KEY_B},
-};
-struct key key3 = {
-    .rising = {key_down},
-    .risingargs = {HID_KEY_C},
-    .falling = {key_up},
-    .fallingargs = {HID_KEY_C},
+struct key *keys[5][15]; // Pointer array to the key array.
+
+struct key key_array[5][15]; // The base key array.
+
+void make_keys(void) {
+  // Row 1
+  key_array[0][0] = make_key(HID_KEY_ESCAPE);
+  key_array[0][1] = make_key(HID_KEY_1);
+  key_array[0][2] = make_key(HID_KEY_2);
+  key_array[0][3] = make_key(HID_KEY_3);
+  key_array[0][4] = make_key(HID_KEY_4);
+  key_array[0][5] = make_key(HID_KEY_5);
+  key_array[0][6] = make_key(HID_KEY_6);
+  key_array[0][7] = make_key(HID_KEY_7);
+  key_array[0][8] = make_key(HID_KEY_8);
+  key_array[0][9] = make_key(HID_KEY_9);
+  key_array[0][10] = make_key(HID_KEY_0);
+  key_array[0][11] = make_key(HID_KEY_MINUS);
+  key_array[0][12] = make_key(HID_KEY_EQUAL);
+  key_array[0][13] = make_key(HID_KEY_MENU);
+  key_array[0][14] = make_key(HID_KEY_CAPS_LOCK);
+
+  // Row 2
+  key_array[1][0] = make_key(HID_KEY_TAB);
+  key_array[1][1] = make_key(HID_KEY_Q);
+  key_array[1][2] = make_key(HID_KEY_D);
+  key_array[1][3] = make_key(HID_KEY_R);
+  key_array[1][4] = make_key(HID_KEY_W);
+  key_array[1][5] = make_key(HID_KEY_B);
+  key_array[1][6] = make_key(HID_KEY_J);
+  key_array[1][7] = make_key(HID_KEY_F);
+  key_array[1][8] = make_key(HID_KEY_U);
+  key_array[1][9] = make_key(HID_KEY_P);
+  key_array[1][10] = make_key(HID_KEY_SEMICOLON);
+  key_array[1][11] = make_key(HID_KEY_BRACKET_LEFT);
+  key_array[1][12] = make_key(HID_KEY_BRACKET_RIGHT);
+  key_array[1][13] = make_key(HID_KEY_BACKSLASH);
+  key_array[1][14] = make_key(HID_KEY_GRAVE);
+
+  // Row 3
+  key_array[2][0] = make_key(HID_KEY_BACKSPACE);
+  key_array[2][1] = make_key(HID_KEY_A);
+  key_array[2][2] = make_key(HID_KEY_S);
+  key_array[2][3] = make_key(HID_KEY_H);
+  key_array[2][4] = make_key(HID_KEY_T);
+  key_array[2][5] = make_key(HID_KEY_G);
+  key_array[2][6] = make_key(HID_KEY_Y);
+  key_array[2][7] = make_key(HID_KEY_N);
+  key_array[2][8] = make_key(HID_KEY_E);
+  key_array[2][9] = make_key(HID_KEY_O);
+  key_array[2][10] = make_key(HID_KEY_I);
+  key_array[2][11] = make_key(HID_KEY_APOSTROPHE);
+  key_array[2][12] = make_key(HID_KEY_ENTER);
+  key_array[2][13] = make_key(HID_KEY_DELETE);
+  key_array[2][14] = make_key(HID_KEY_PRINT_SCREEN);
+
+  // Row 4
+  key_array[3][0] = make_key(HID_KEY_COPY); // TODO: Modifiers - left shift
+  key_array[3][1] = make_key(HID_KEY_Z);
+  key_array[3][2] = make_key(HID_KEY_X);
+  key_array[3][3] = make_key(HID_KEY_M);
+  key_array[3][4] = make_key(HID_KEY_C);
+  key_array[3][5] = make_key(HID_KEY_V);
+  key_array[3][6] = make_key(HID_KEY_K);
+  key_array[3][7] = make_key(HID_KEY_L);
+  key_array[3][8] = make_key(HID_KEY_COMMA);
+  key_array[3][9] = make_key(HID_KEY_PERIOD);
+  key_array[3][10] = make_key(HID_KEY_SLASH);
+  key_array[3][11] = make_key(0x65); // Compose?
+  key_array[3][12] = make_key(HID_KEY_PAGE_UP);
+  key_array[3][13] = make_key(HID_KEY_ARROW_UP);
+  key_array[3][14] = make_key(HID_KEY_PAGE_DOWN);
+
+  // Row 5
+  key_array[4][0] = make_key(HID_KEY_PASTE);   // TODO: Modifiers - left control
+  key_array[4][1] = make_key(0x5B);            // Super?
+  key_array[4][2] = make_key(HID_KEY_EXECUTE); // TODO: Modifiers - left alt
+  key_array[4][3] = make_key(HID_KEY_VOLUME_DOWN);
+  key_array[4][4] = make_key(HID_KEY_MUTE);        // TODO: layers
+  key_array[4][5] = make_key(HID_KEY_VOLUME_UP);   // TODO: layers
+  key_array[4][6] = make_key(HID_KEY_SPACE);       // TODO: layers
+  key_array[4][7] = make_key(HID_KEY_AGAIN);       // TODO: Media Controls
+  key_array[4][8] = make_key(HID_KEY_FIND);        // TODO: Media Controls
+  key_array[4][9] = make_key(HID_KEY_APPLICATION); // TODO: Media Controls
+  key_array[4][10] = make_key(HID_KEY_HOME);
+  key_array[4][11] = make_key(HID_KEY_END);
+  key_array[4][12] = make_key(HID_KEY_ARROW_LEFT);
+  key_array[4][13] = make_key(HID_KEY_ARROW_DOWN);
+  key_array[4][14] = make_key(HID_KEY_ARROW_RIGHT);
+
+  // Fill the keys array with pointers to the key_array.
+  for (uint8_t y = 0; y < KEYBOARD_Y; y++) {
+    for (uint8_t x = 0; x < KEYBOARD_X; x++) {
+      keys[y][x] = &key_array[y][x];
+    }
+  }
 };
 
-// The default layer of the keyboard.
-struct key* keys[15][5] = {
-  {&key1, &key1,&key1,&key1,&key1},
-  {&key2, &key2,&key2,&key2,&key2},
-  {&key3, &key3,&key3,&key3,&key3},
-  {&key1, &key1,&key1,&key1,&key1},
-  {&key2, &key2,&key2,&key2,&key2},
-  {&key3, &key3,&key3,&key3,&key3},
-  {&key1, &key1,&key1,&key1,&key1},
-  {&key2, &key2,&key2,&key2,&key2},
-  {&key3, &key3,&key3,&key3,&key3},
-  {&key1, &key1,&key1,&key1,&key1},
-  {&key2, &key2,&key2,&key2,&key2},
-  {&key3, &key3,&key3,&key3,&key3},
-  {&key1, &key1,&key1,&key1,&key1},
-  {&key2, &key2,&key2,&key2,&key2},
-  {&key3, &key3,&key3,&key3,&key3},
-};
+const uint8_t PCA9555_ADDR = 0b0100000;
+const uint8_t PCA9555_CMD_SET_INPUTS_0 = _u(0x00);
+const uint8_t PCA9555_CMD_SET_INPUTS_1 = _u(0x01);
+const uint8_t PCA9555_CMD_SET_OUTPUTS_0 = _u(0x02);
+const uint8_t PCA9555_CMD_SET_OUTPUTS_1 = _u(0x03);
+const uint8_t PCA9555_CMD_POLARITY_INVERT_0 = _u(0x04);
+const uint8_t PCA9555_CMD_POLARITY_INVERT_1 = _u(0x05);
+const uint8_t PCA9555_CMD_CONFIGURE_0 = _u(0x06);
+const uint8_t PCA9555_CMD_CONFIGURE_1 = _u(0x07);
 
-const int PCA9555_ADDR = 0b0100000;
-const int PCA9555_CMD_SET_INPUTS_0 = _u(0x00);
-const int PCA9555_CMD_SET_INPUTS_1 = _u(0x01);
-const int PCA9555_CMD_SET_OUTPUTS_0 = _u(0x02);
-const int PCA9555_CMD_SET_OUTPUTS_1 = _u(0x03);
-const int PCA9555_CMD_POLARITY_INVERT_0 = _u(0x04);
-const int PCA9555_CMD_POLARITY_INVERT_1 = _u(0x05);
-const int PCA9555_CMD_CONFIGURE_0 = _u(0x06);
-const int PCA9555_CMD_CONFIGURE_1 = _u(0x07);
+const uint16_t outputs_lookup[16] = {
+    0b0000000010000000, // 15
+    0b0000000001000000, // 14
+    0b0000000000100000, // 13
+    0b0000000000010000, // 12
+    0b0000000000001000, // 11
+    0b0000000000000100, // 10
+    0b0000000000000010, // 9
+    0b0001000000000000, // 8
+    0b0010000000000000, // 7
+    0b0100000000000000, // 6
+    0b1000000000000000, // 5
+    0b0000100000000000, // 4
+    0b0000010000000000, // 3
+    0b0000001000000000, // 2
+    0b0000000100000000, // 1
+};
 
 void check_keys() {
-  uint16_t column_outputs = 0b0000000000000001; // Start at the leftmost column
   // PCA9555 uses two sets of 8-bit outputs
-  uint8_t outputs_0[2] = {PCA9555_CMD_SET_OUTPUTS_0, 0b00000000}; 
+  uint8_t outputs_0[2] = {PCA9555_CMD_SET_OUTPUTS_0, 0b00000000};
   uint8_t outputs_1[2] = {PCA9555_CMD_SET_OUTPUTS_1, 0b00000000};
   // Loop through all columns
-  for (int x = 0; x < KEYBOARD_X; x++) {
+  for (uint8_t x = 0; x < KEYBOARD_X; x++) {
+    uint16_t column_outputs = outputs_lookup[x];
     // Split the column_outputs into 2 sets of 8-bit numbers.
     outputs_0[1] = column_outputs & 0xFF;
     outputs_1[1] = (column_outputs >> 8) & 0xFF;
@@ -195,23 +273,24 @@ void check_keys() {
 
     // Get the state of all keys in the column
     bool r1 = gpio_get(1);
-    bool r2 = gpio_get(0);
+    /*bool r2 = gpio_get(0);*/
     bool r3 = gpio_get(29);
     bool r4 = gpio_get(28);
     bool r5 = gpio_get(27);
-    // Check the state of each key in the column for changes.
-    check_key(keys[x][0], r1, &layers, &default_layer);
-    check_key(keys[x][1], r2, &layers, &default_layer);
-    check_key(keys[x][2], r3, &layers, &default_layer);
-    check_key(keys[x][3], r4, &layers, &default_layer);
-    check_key(keys[x][4], r5, &layers, &default_layer);
 
-    // If all possible columns have been checked, return.
-    if (column_outputs == 0b1000000000000000) {
-      return;
+    if (r1 || r3 || r4 || r5) {
+      gpio_put(25, 1);
+      printf("Column %d pressed\n", x);
+    } else {
+      gpio_put(25, 0);
     }
-    // Check the next column
-    column_outputs = column_outputs << 1;
+
+    // Check the state of each key in the column for changes.
+    check_key(keys[0][x], r1, &layers, &default_layer);
+    /*check_key(keys[1][x], r2, &layers, &default_layer);*/
+    check_key(keys[2][x], r3, &layers, &default_layer);
+    check_key(keys[3][x], r4, &layers, &default_layer);
+    check_key(keys[4][x], r5, &layers, &default_layer);
   }
 }
 
@@ -233,21 +312,48 @@ void pca9555_init(void) {
 };
 
 void debugging_init(void) {
-  // Configure the board's LED pin as an output for debugging.
+  stdio_init_all();
+  uart_init(uart0, 115200); // UART debugging
+
+  // Configure the board's LED pins as an output for debugging.
   gpio_init(25);
   gpio_set_dir(25, GPIO_OUT);
+}
 
-  // stdio_init_all();
-  uart_init(uart0, 115200); // UART debugging
+void row_setup(void) {
+  // Configure the row pins as inputs with pull-down resistors.
+  gpio_init(1);
+  gpio_set_dir(1, GPIO_IN);
+  gpio_pull_down(1);
+
+  /*gpio_init(0);*/
+  /*gpio_set_dir(0, GPIO_IN);*/
+  /*gpio_pull_down(0);*/
+
+  gpio_init(29);
+  gpio_set_dir(29, GPIO_IN);
+  gpio_pull_down(29);
+
+  gpio_init(28);
+  gpio_set_dir(28, GPIO_IN);
+  gpio_pull_down(28);
+
+  gpio_init(27);
+  gpio_set_dir(27, GPIO_IN);
+  gpio_pull_down(27);
 }
 
 // The main function, runs tinyusb and the key scanning loop.
 int main(void) {
-  debugging_init();           // Initialize debugging utilities
+  debugging_init(); // Initialize debugging utilities
+
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
   tusb_init();                // Initialize tinyusb
-  pca9555_init();             // Initialize the PCA9555 I2C GPIO expander
+
+  make_keys();    // Initialize the keys on the keyboard
+  row_setup();    // Initialize the rows of the keyboard
+  pca9555_init(); // Initialize the PCA9555 I2C GPIO expander
 
   while (true) {
     check_keys(); // Check the keys on the keyboard for their state.
