@@ -1,15 +1,35 @@
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
+#include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include <stdio.h>
 #include <string.h>
 
 #include "bsp/board.h"
+#include "pico_pca9555.h"
 #include "squirrel_constructors.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
 #include <squirrel.h>
+
+// LED functions in cycle_delay.S
+extern void cycle_delay_t0h();
+extern void cycle_delay_t0l();
+extern void cycle_delay_t1h();
+extern void cycle_delay_t1l();
+extern uint32_t disable_and_save_interrupts(); // Used for interrupt disabling
+extern void
+    enable_and_restore_interrupts(uint32_t); // Used for interrupt enabling
+
+#define LED_PIN 26
+#define LED_NUM 90
+
+#define LED_DATA_SIZE 3
+#define LED_BYTE_SIZE LED_NUM *LED_DATA_SIZE
+
+// RGB LED data
+uint8_t led_data[LED_BYTE_SIZE];
 
 // Send a HID report with the given keycodes to the host.
 static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
@@ -187,7 +207,7 @@ void make_keys(void) {
   key_array[2][14] = make_key(HID_KEY_PRINT_SCREEN);
 
   // Row 4
-  key_array[3][0] = make_key(HID_KEY_COPY); // TODO: Modifiers - left shift
+  key_array[3][0] = make_modifier(KEYBOARD_MODIFIER_LEFTSHIFT);
   key_array[3][1] = make_key(HID_KEY_Z);
   key_array[3][2] = make_key(HID_KEY_X);
   key_array[3][3] = make_key(HID_KEY_M);
@@ -204,9 +224,9 @@ void make_keys(void) {
   key_array[3][14] = make_key(HID_KEY_PAGE_DOWN);
 
   // Row 5
-  key_array[4][0] = make_key(HID_KEY_PASTE);   // TODO: Modifiers - left control
-  key_array[4][1] = make_key(0x5B);            // Super?
-  key_array[4][2] = make_key(HID_KEY_EXECUTE); // TODO: Modifiers - left alt
+  key_array[4][0] = make_modifier(KEYBOARD_MODIFIER_LEFTCTRL);
+  key_array[4][1] = make_key(HID_KEY_GUI_LEFT);
+  key_array[4][2] = make_modifier(KEYBOARD_MODIFIER_LEFTALT);
   key_array[4][3] = make_key(HID_KEY_VOLUME_DOWN);
   key_array[4][4] = make_key(HID_KEY_MUTE);        // TODO: layers
   key_array[4][5] = make_key(HID_KEY_VOLUME_UP);   // TODO: layers
@@ -228,15 +248,7 @@ void make_keys(void) {
   }
 };
 
-const uint8_t PCA9555_ADDR = 0b0100000;
-const uint8_t PCA9555_CMD_SET_INPUTS_0 = _u(0x00);
-const uint8_t PCA9555_CMD_SET_INPUTS_1 = _u(0x01);
-const uint8_t PCA9555_CMD_SET_OUTPUTS_0 = _u(0x02);
-const uint8_t PCA9555_CMD_SET_OUTPUTS_1 = _u(0x03);
-const uint8_t PCA9555_CMD_POLARITY_INVERT_0 = _u(0x04);
-const uint8_t PCA9555_CMD_POLARITY_INVERT_1 = _u(0x05);
-const uint8_t PCA9555_CMD_CONFIGURE_0 = _u(0x06);
-const uint8_t PCA9555_CMD_CONFIGURE_1 = _u(0x07);
+const uint8_t PCA9555_ADDR = 0b0100000; // 3 address pins are grounded.
 
 const uint16_t outputs_lookup[16] = {
     0b0000000010000000, // 15
@@ -258,36 +270,27 @@ const uint16_t outputs_lookup[16] = {
 
 void check_keys() {
   // PCA9555 uses two sets of 8-bit outputs
-  uint8_t outputs_0[2] = {PCA9555_CMD_SET_OUTPUTS_0, 0b00000000};
-  uint8_t outputs_1[2] = {PCA9555_CMD_SET_OUTPUTS_1, 0b00000000};
   // Loop through all columns
   for (uint8_t x = 0; x < KEYBOARD_X; x++) {
     uint16_t column_outputs = outputs_lookup[x];
-    // Split the column_outputs into 2 sets of 8-bit numbers.
-    outputs_0[1] = column_outputs & 0xFF;
-    outputs_1[1] = (column_outputs >> 8) & 0xFF;
-
-    // Write the two 8-bit numbers
-    i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, outputs_0, 2, false);
-    i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, outputs_1, 2, false);
+    pca9555_output(&i2c1_inst, PCA9555_ADDR, column_outputs);
 
     // Get the state of all keys in the column
     bool r1 = gpio_get(1);
-    /*bool r2 = gpio_get(0);*/
+    bool r2 = gpio_get(0);
     bool r3 = gpio_get(29);
     bool r4 = gpio_get(28);
     bool r5 = gpio_get(27);
 
-    if (r1 || r3 || r4 || r5) {
+    if (r1 || r2 || r3 || r4 || r5) {
       gpio_put(25, 1);
-      printf("Column %d pressed\n", x);
     } else {
       gpio_put(25, 0);
     }
 
     // Check the state of each key in the column for changes.
     check_key(keys[0][x], r1, &layers, &default_layer);
-    /*check_key(keys[1][x], r2, &layers, &default_layer);*/
+    check_key(keys[1][x], r2, &layers, &default_layer);
     check_key(keys[2][x], r3, &layers, &default_layer);
     check_key(keys[3][x], r4, &layers, &default_layer);
     check_key(keys[4][x], r5, &layers, &default_layer);
@@ -305,10 +308,7 @@ void pca9555_init(void) {
   gpio_pull_up(7);
 
   // Configure the PCA9555's pins as outputs.
-  uint8_t buf[2] = {PCA9555_CMD_CONFIGURE_0, 0b00000000};
-  i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf, 2, false);
-  buf[0] = PCA9555_CMD_CONFIGURE_1;
-  i2c_write_blocking(&i2c1_inst, PCA9555_ADDR, buf, 2, false);
+  pca9555_configure(&i2c1_inst, PCA9555_ADDR, 0x0000);
 };
 
 void debugging_init(void) {
@@ -326,9 +326,9 @@ void row_setup(void) {
   gpio_set_dir(1, GPIO_IN);
   gpio_pull_down(1);
 
-  /*gpio_init(0);*/
-  /*gpio_set_dir(0, GPIO_IN);*/
-  /*gpio_pull_down(0);*/
+  gpio_init(0);
+  gpio_set_dir(0, GPIO_IN);
+  gpio_pull_down(0);
 
   gpio_init(29);
   gpio_set_dir(29, GPIO_IN);
@@ -343,6 +343,134 @@ void row_setup(void) {
   gpio_pull_down(27);
 }
 
+void leds_init(void) {
+  // Configure the LED pin as an output.
+  gpio_init(LED_PIN);
+  gpio_set_dir(LED_PIN, GPIO_OUT);
+  // Reset the LED strip.
+  gpio_put(LED_PIN, false);
+
+  set_sys_clock_khz(100000, true); // Default 125MHz, clocked down to 100MHz
+  sleep_ms(10);                    // Wait for LEDs to reset
+}
+
+void send_led_data() {
+  /* Disable all interrupts and save the mask */
+  uint32_t interrupt_mask = disable_and_save_interrupts();
+
+  /* Get the pin bit */
+  uint32_t pin = 1UL << LED_PIN;
+
+  /* Declared outside to force optimization if compiler gets any funny ideas */
+  uint8_t red = 0;
+  uint8_t green = 0;
+  uint8_t blue = 0;
+  uint32_t i = 0;
+  int8_t j = 0;
+
+  for (i = 0; i < LED_BYTE_SIZE; i += LED_DATA_SIZE) {
+    /* Send order is green, red, blue because someone messed up big time */
+
+    /* Look up values once, a micro optimization, assume compiler is dumb as a
+     * brick */
+    green = led_data[i];
+    red = led_data[i + 1];
+    blue = led_data[i + 2];
+
+    for (j = 7; j >= 0; j--) /* Handle the 8 green bits */
+    {
+      /* Get Nth bit */
+      if (((green >> j) & 1) == 1) /* The bit is 1 */
+      {
+        sio_hw->gpio_set = pin; /* This sets the specific pin to high */
+        cycle_delay_t1h(); /* Delay by datasheet amount (800ns give or take) */
+        sio_hw->gpio_clr = pin; /* This sets the specific pin to low */
+        cycle_delay_t1l(); /* Delay by datasheet amount (450ns give or take) */
+      } else               /* The bit is 0 */
+      {
+        sio_hw->gpio_set = pin;
+        cycle_delay_t0h();
+        sio_hw->gpio_clr = pin;
+        cycle_delay_t0l();
+      }
+    }
+
+    for (j = 7; j >= 0; j--) /* Handle the 8 red bits */
+    {
+      if (((red >> j) & 1) == 1) {
+        sio_hw->gpio_set = pin;
+        cycle_delay_t1h();
+        sio_hw->gpio_clr = pin;
+        cycle_delay_t1l();
+      } else {
+        sio_hw->gpio_set = pin;
+        cycle_delay_t0h();
+        sio_hw->gpio_clr = pin;
+        cycle_delay_t0l();
+      }
+    }
+
+    for (j = 7; j >= 0; j--) /* Handle the 8 blue bits */
+    {
+      if (((blue >> j) & 1) == 1) {
+        sio_hw->gpio_set = pin;
+        cycle_delay_t1h();
+        sio_hw->gpio_clr = pin;
+        cycle_delay_t1l();
+      } else {
+        sio_hw->gpio_set = pin;
+        cycle_delay_t0h();
+        sio_hw->gpio_clr = pin;
+        cycle_delay_t0l();
+      }
+    }
+  }
+
+  /* Set the level low to indicate a reset is happening */
+  sio_hw->gpio_clr = pin;
+
+  /* Enable the interrupts that got disabled */
+  enable_and_restore_interrupts(interrupt_mask);
+}
+
+/* Sets a specific LED to a certain color */
+/* LEDs start at 0 */
+void set_led(uint32_t led, uint8_t r, uint8_t g, uint8_t b) {
+  led_data[led * LED_DATA_SIZE] = g;       /* Green */
+  led_data[(led * LED_DATA_SIZE) + 1] = r; /* Red */
+  led_data[(led * LED_DATA_SIZE) + 2] = b; /* Blue */
+}
+
+/* Sets all the LEDs to a certain color */
+void set_all(uint8_t r, uint8_t g, uint8_t b) {
+  for (uint32_t i = 0; i < LED_BYTE_SIZE; i += LED_DATA_SIZE) {
+    led_data[i] = g;     /* Green */
+    led_data[i + 1] = r; /* Red */
+    led_data[i + 2] = b; /* Blue */
+  }
+}
+
+void led_task(void) {
+  set_led(0, 255, 0, 0);
+  set_led(1, 0, 255, 0);
+  send_led_data();
+  sleep_ms(100);
+}
+
+void core1_main() {
+  while (true) {
+    led_task();
+  }
+}
+
+void core0_main() {
+  while (true) {
+    check_keys(); // Check the keys on the keyboard for their states.
+    tud_task();   // tinyusb device task.
+    hid_task();   // Send HID reports to the host.
+  }
+}
+
 // The main function, runs tinyusb and the key scanning loop.
 int main(void) {
   debugging_init(); // Initialize debugging utilities
@@ -354,10 +482,10 @@ int main(void) {
   make_keys();    // Initialize the keys on the keyboard
   row_setup();    // Initialize the rows of the keyboard
   pca9555_init(); // Initialize the PCA9555 I2C GPIO expander
+  leds_init();    // Initialize the LEDs
 
-  while (true) {
-    check_keys(); // Check the keys on the keyboard for their state.
-    tud_task();   // tinyusb device task.
-    hid_task();   // Send HID reports to the host.
-  }
+  // Core 1 loop
+  multicore_launch_core1(core1_main);
+  // Core 0 loop
+  core0_main();
 }

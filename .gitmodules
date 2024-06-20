@@ -4,3 +4,6 @@
 [submodule "external/pico-sdk"]
 	path = external/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
+[submodule "external/pico_pca9555"]
+	path = external/pico_pca9555
+	url = https://github.com/headblockhead/pico_pca9555.git
