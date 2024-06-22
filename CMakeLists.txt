@@ -35,7 +35,6 @@ endif()
 # Target: Create an executable
 add_executable(slab
         ${CMAKE_CURRENT_LIST_DIR}/src/main.c
-        ${CMAKE_CURRENT_LIST_DIR}/src/cycle_delay.S
         )
 
 # Add USB configuration files
