@@ -7,11 +7,24 @@
 #include <string.h>
 
 #include "bsp/board.h"
+#include "hardware/pio.h"
 #include "pico_pca9555.h"
 #include "squirrel_constructors.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
+#include "ws2812.pio.h"
 #include <squirrel.h>
+
+#define NUM_PIXELS 90
+#define WS2812_PIN 26
+
+static inline void put_pixel(uint32_t pixel_grb) {
+  pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
+}
+
+static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
+  return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
+}
 
 // Send a HID report with the given keycodes to the host.
 static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
@@ -325,9 +338,35 @@ void row_setup(void) {
   gpio_pull_down(27);
 }
 
+void led_init(void) {
+  // Initialize the PIO state machine.
+  PIO pio = pio0;
+  uint offset = pio_add_program(pio, &ws2812_program);
+  uint sm = pio_claim_unused_sm(pio, true);
+  ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, false);
+}
+
+int led_time = 0;
+
+void led_task(void) {
+  for (uint i = 0; i < NUM_PIXELS; ++i) {
+    uint x = (i + (led_time >> 1)) % 64;
+    if (x < 10)
+      put_pixel(urgb_u32(0xff, 0, 0));
+    else if (x >= 15 && x < 25)
+      put_pixel(urgb_u32(0, 0xff, 0));
+    else if (x >= 30 && x < 40)
+      put_pixel(urgb_u32(0, 0, 0xff));
+    else
+      put_pixel(0);
+  }
+  led_time++;
+  sleep_ms(10);
+}
+
 void core1_main() {
   while (true) {
-    sleep_ms(1000);
+    led_task();
   }
 }
 
@@ -350,6 +389,7 @@ int main(void) {
   make_keys();    // Initialize the keys on the keyboard
   row_setup();    // Initialize the rows of the keyboard
   pca9555_init(); // Initialize the PCA9555 I2C GPIO expander
+  led_init();     // Initialize the WS2812 LED strip
 
   // Core 1 loop
   multicore_launch_core1(core1_main);
