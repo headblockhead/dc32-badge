@@ -13,24 +13,6 @@
 #include "usb_descriptors.h"
 #include <squirrel.h>
 
-// LED functions in cycle_delay.S
-extern void cycle_delay_t0h();
-extern void cycle_delay_t0l();
-extern void cycle_delay_t1h();
-extern void cycle_delay_t1l();
-extern uint32_t disable_and_save_interrupts(); // Used for interrupt disabling
-extern void
-    enable_and_restore_interrupts(uint32_t); // Used for interrupt enabling
-
-#define LED_PIN 26
-#define LED_NUM 90
-
-#define LED_DATA_SIZE 3
-#define LED_BYTE_SIZE LED_NUM *LED_DATA_SIZE
-
-// RGB LED data
-uint8_t led_data[LED_BYTE_SIZE];
-
 // Send a HID report with the given keycodes to the host.
 static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
   // skip if hid is not ready yet
@@ -343,123 +325,9 @@ void row_setup(void) {
   gpio_pull_down(27);
 }
 
-void leds_init(void) {
-  // Configure the LED pin as an output.
-  gpio_init(LED_PIN);
-  gpio_set_dir(LED_PIN, GPIO_OUT);
-  // Reset the LED strip.
-  gpio_put(LED_PIN, false);
-
-  set_sys_clock_khz(100000, true); // Default 125MHz, clocked down to 100MHz
-  sleep_ms(10);                    // Wait for LEDs to reset
-}
-
-void send_led_data() {
-  /* Disable all interrupts and save the mask */
-  uint32_t interrupt_mask = disable_and_save_interrupts();
-
-  /* Get the pin bit */
-  uint32_t pin = 1UL << LED_PIN;
-
-  /* Declared outside to force optimization if compiler gets any funny ideas */
-  uint8_t red = 0;
-  uint8_t green = 0;
-  uint8_t blue = 0;
-  uint32_t i = 0;
-  int8_t j = 0;
-
-  for (i = 0; i < LED_BYTE_SIZE; i += LED_DATA_SIZE) {
-    /* Send order is green, red, blue because someone messed up big time */
-
-    /* Look up values once, a micro optimization, assume compiler is dumb as a
-     * brick */
-    green = led_data[i];
-    red = led_data[i + 1];
-    blue = led_data[i + 2];
-
-    for (j = 7; j >= 0; j--) /* Handle the 8 green bits */
-    {
-      /* Get Nth bit */
-      if (((green >> j) & 1) == 1) /* The bit is 1 */
-      {
-        sio_hw->gpio_set = pin; /* This sets the specific pin to high */
-        cycle_delay_t1h(); /* Delay by datasheet amount (800ns give or take) */
-        sio_hw->gpio_clr = pin; /* This sets the specific pin to low */
-        cycle_delay_t1l(); /* Delay by datasheet amount (450ns give or take) */
-      } else               /* The bit is 0 */
-      {
-        sio_hw->gpio_set = pin;
-        cycle_delay_t0h();
-        sio_hw->gpio_clr = pin;
-        cycle_delay_t0l();
-      }
-    }
-
-    for (j = 7; j >= 0; j--) /* Handle the 8 red bits */
-    {
-      if (((red >> j) & 1) == 1) {
-        sio_hw->gpio_set = pin;
-        cycle_delay_t1h();
-        sio_hw->gpio_clr = pin;
-        cycle_delay_t1l();
-      } else {
-        sio_hw->gpio_set = pin;
-        cycle_delay_t0h();
-        sio_hw->gpio_clr = pin;
-        cycle_delay_t0l();
-      }
-    }
-
-    for (j = 7; j >= 0; j--) /* Handle the 8 blue bits */
-    {
-      if (((blue >> j) & 1) == 1) {
-        sio_hw->gpio_set = pin;
-        cycle_delay_t1h();
-        sio_hw->gpio_clr = pin;
-        cycle_delay_t1l();
-      } else {
-        sio_hw->gpio_set = pin;
-        cycle_delay_t0h();
-        sio_hw->gpio_clr = pin;
-        cycle_delay_t0l();
-      }
-    }
-  }
-
-  /* Set the level low to indicate a reset is happening */
-  sio_hw->gpio_clr = pin;
-
-  /* Enable the interrupts that got disabled */
-  enable_and_restore_interrupts(interrupt_mask);
-}
-
-/* Sets a specific LED to a certain color */
-/* LEDs start at 0 */
-void set_led(uint32_t led, uint8_t r, uint8_t g, uint8_t b) {
-  led_data[led * LED_DATA_SIZE] = g;       /* Green */
-  led_data[(led * LED_DATA_SIZE) + 1] = r; /* Red */
-  led_data[(led * LED_DATA_SIZE) + 2] = b; /* Blue */
-}
-
-/* Sets all the LEDs to a certain color */
-void set_all(uint8_t r, uint8_t g, uint8_t b) {
-  for (uint32_t i = 0; i < LED_BYTE_SIZE; i += LED_DATA_SIZE) {
-    led_data[i] = g;     /* Green */
-    led_data[i + 1] = r; /* Red */
-    led_data[i + 2] = b; /* Blue */
-  }
-}
-
-void led_task(void) {
-  set_led(0, 255, 0, 0);
-  set_led(1, 0, 255, 0);
-  send_led_data();
-  sleep_ms(100);
-}
-
 void core1_main() {
   while (true) {
-    led_task();
+    sleep_ms(1000);
   }
 }
 
@@ -482,7 +350,6 @@ int main(void) {
   make_keys();    // Initialize the keys on the keyboard
   row_setup();    // Initialize the rows of the keyboard
   pca9555_init(); // Initialize the PCA9555 I2C GPIO expander
-  leds_init();    // Initialize the LEDs
 
   // Core 1 loop
   multicore_launch_core1(core1_main);
