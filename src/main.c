@@ -139,37 +139,26 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
   // Check if the report is for the LED strip.
   if (bufsize == 63) {
     if (report_id == 0b00000000) {
-      for (int i = 0; i < 63; i++) { // Keyboard part 1 (63 bytes) - 21 LEDs
-        memcpy(leds, buffer, 63);
-      }
+      // Keyboard part 1 (63 bytes) - 21 LEDs
+      memcpy(leds, buffer, 63);
     }
     if (report_id == 0b00000001) {
       // Next 21 LEDs of the keyboard.
-      for (int i = 0; i < 63; i++) {
-        memcpy(leds + 63, buffer, 63);
-      }
+      memcpy(leds + 63, buffer, 63);
     }
     if (report_id == 0b00000010) {
       // Next 21 LEDs of the keyboard.
-      for (int i = 0; i < 63; i++) {
-        memcpy(leds + 126, buffer, 63);
-      }
+      memcpy(leds + 126, buffer, 63);
     }
     if (report_id == 0b00000011) {
       // Next 21 LEDs of the keyboard.
-      for (int i = 0; i < 63; i++) {
-        memcpy(leds + 189, buffer, 63);
-      }
+      memcpy(leds + 189, buffer, 63);
     }
     if (report_id == 0b00000100) {
       // Last 6 LEDs of the keyboard.
-      for (int i = 0; i < 18; i++) {
-        memcpy(leds + 207, buffer, 18);
-      }
+      memcpy(leds + 207, buffer, 18);
       // LED bar
-      for (int i = 0; i < 45; i++) {
-        memcpy(leds + 225, buffer + 18, 45);
-      }
+      memcpy(leds + 225, buffer + 18, 45);
 
       // Update the LED strip with the new data.
       for (int i = 0; i < 90; i++) {
