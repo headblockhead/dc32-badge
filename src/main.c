@@ -141,18 +141,22 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
     if (report_id == 0b00000000) {
       // Keyboard part 1 (63 bytes) - 21 LEDs
       memcpy(leds, buffer, 63);
+      return;
     }
     if (report_id == 0b00000001) {
       // Next 21 LEDs of the keyboard.
       memcpy(leds + 63, buffer, 63);
+      return;
     }
     if (report_id == 0b00000010) {
       // Next 21 LEDs of the keyboard.
       memcpy(leds + 126, buffer, 63);
+      return;
     }
     if (report_id == 0b00000011) {
       // Next 21 LEDs of the keyboard.
       memcpy(leds + 189, buffer, 63);
+      return;
     }
     if (report_id == 0b00000100) {
       // Last 6 LEDs of the keyboard.
@@ -164,6 +168,7 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
       for (int i = 0; i < 90; i++) {
         put_pixel(urgb_u32(leds[i * 3], leds[i * 3 + 1], leds[i * 3 + 2]));
       }
+      return;
     }
   }
   // Recived data from the host.
