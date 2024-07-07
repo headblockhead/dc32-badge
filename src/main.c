@@ -133,24 +133,45 @@ uint8_t leds[270] = {0}; // The state of each LED in the LED strip.
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
                            hid_report_type_t report_type, uint8_t const *buffer,
                            uint16_t bufsize) {
-  // Check for custom commands
-  if (bufsize == 15) {
+  // report_id was the first byte of the buffer, report_id was removed from the
+  // buffer before this function was called.
+
+  // Check if the report is for the LED strip.
+  if (bufsize == 63) {
     if (report_id == 0b00000000) {
-      for (int i = 0; i < 15; i++) {
-        leds[i * 3] = buffer[i];
+      for (int i = 0; i < 63; i++) { // Keyboard part 1 (63 bytes) - 21 LEDs
+        memcpy(leds, buffer, 63);
       }
     }
     if (report_id == 0b00000001) {
-      for (int i = 0; i < 15; i++) {
-        leds[i * 3 + 1] = buffer[i];
+      // Next 21 LEDs of the keyboard.
+      for (int i = 0; i < 63; i++) {
+        memcpy(leds + 63, buffer, 63);
       }
     }
     if (report_id == 0b00000010) {
-      for (int i = 0; i < 15; i++) {
-        leds[i * 3 + 2] = buffer[i];
+      // Next 21 LEDs of the keyboard.
+      for (int i = 0; i < 63; i++) {
+        memcpy(leds + 126, buffer, 63);
       }
     }
-    if (report_id == 0xFF) {
+    if (report_id == 0b00000011) {
+      // Next 21 LEDs of the keyboard.
+      for (int i = 0; i < 63; i++) {
+        memcpy(leds + 189, buffer, 63);
+      }
+    }
+    if (report_id == 0b00000100) {
+      // Last 6 LEDs of the keyboard.
+      for (int i = 0; i < 18; i++) {
+        memcpy(leds + 207, buffer, 18);
+      }
+      // LED bar
+      for (int i = 0; i < 45; i++) {
+        memcpy(leds + 225, buffer + 18, 45);
+      }
+
+      // Update the LED strip with the new data.
       for (int i = 0; i < 90; i++) {
         put_pixel(urgb_u32(leds[i * 3], leds[i * 3 + 1], leds[i * 3 + 2]));
       }
@@ -380,7 +401,7 @@ void led_init(void) {
   ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, false);
 }
 
-void led_task(void) { sleep_ms(10); }
+void led_task(void) {}
 
 void core1_main() {
   while (true) {
@@ -410,7 +431,7 @@ int main(void) {
   led_init();     // Initialize the WS2812 LED strip
 
   // Core 1 loop
-  //  multicore_launch_core1(core1_main);
+  // multicore_launch_core1(core1_main);
   // Core 0 loop
   core0_main();
 }
