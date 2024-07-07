@@ -126,19 +126,58 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
   return 0;
 }
 
+uint8_t leds[270] = {0}; // The state of each LED in the LED strip.
+
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
                            hid_report_type_t report_type, uint8_t const *buffer,
                            uint16_t bufsize) {
-  // This callback is not used, but is required by tinyusb.
-  // Here you can receive data sent from the host to the device (such as
-  // capslock LEDs, etc.)
-  (void)instance;
-  (void)report_id;
-  (void)report_type;
-  (void)buffer;
-  (void)bufsize;
+  // Check for custom commands
+  if (bufsize == 15) {
+    if (report_id == 0b00000000) {
+      for (int i = 0; i < 15; i++) {
+        leds[i * 3] = buffer[i];
+      }
+    }
+    if (report_id == 0b00000001) {
+      for (int i = 0; i < 15; i++) {
+        leds[i * 3 + 1] = buffer[i];
+      }
+    }
+    if (report_id == 0b00000010) {
+      for (int i = 0; i < 15; i++) {
+        leds[i * 3 + 2] = buffer[i];
+      }
+    }
+    if (report_id == 0xFF) {
+      for (int i = 0; i < 90; i++) {
+        put_pixel(urgb_u32(leds[i * 3], leds[i * 3 + 1], leds[i * 3 + 2]));
+      }
+    }
+  }
+  // Recived data from the host.
+  if (report_type == HID_REPORT_TYPE_OUTPUT) {
+    // Keyboard type report
+    if (report_id == REPORT_ID_KEYBOARD) {
+      // Set keyboard LED e.g Capslock, Numlock etc...
+      // bufsize should be (at least) 1
+      if (bufsize < 1) {
+        return;
+      }
+
+      uint8_t const kbd_leds = buffer[0];
+      if (kbd_leds & KEYBOARD_LED_CAPSLOCK) {
+        /*put_pixel(urgb_u32(255, 0, 0));*/
+      } else if (kbd_leds & KEYBOARD_LED_NUMLOCK) {
+        /*put_pixel(urgb_u32(0, 255, 0));*/
+      } else if (kbd_leds & KEYBOARD_LED_SCROLLLOCK) {
+        /*put_pixel(urgb_u32(0, 0, 255));*/
+      } else {
+        /*put_pixel(0);*/
+      }
+    }
+  }
 }
 
 // Width and height of the keyboard matrix.
@@ -272,20 +311,14 @@ void check_keys() {
 
     // Get the state of all keys in the column
     bool r1 = gpio_get(1);
-    bool r2 = gpio_get(0);
+    /*bool r2 = gpio_get(0);*/
     bool r3 = gpio_get(29);
     bool r4 = gpio_get(28);
     bool r5 = gpio_get(27);
 
-    if (r1 || r2 || r3 || r4 || r5) {
-      gpio_put(25, 1);
-    } else {
-      gpio_put(25, 0);
-    }
-
     // Check the state of each key in the column for changes.
     check_key(keys[0][x], r1, &layers, &default_layer);
-    check_key(keys[1][x], r2, &layers, &default_layer);
+    /*check_key(keys[1][x], r2, &layers, &default_layer);*/
     check_key(keys[2][x], r3, &layers, &default_layer);
     check_key(keys[3][x], r4, &layers, &default_layer);
     check_key(keys[4][x], r5, &layers, &default_layer);
@@ -313,6 +346,7 @@ void debugging_init(void) {
   // Configure the board's LED pins as an output for debugging.
   gpio_init(25);
   gpio_set_dir(25, GPIO_OUT);
+  gpio_put(25, 0);
 }
 
 void row_setup(void) {
@@ -321,9 +355,9 @@ void row_setup(void) {
   gpio_set_dir(1, GPIO_IN);
   gpio_pull_down(1);
 
-  gpio_init(0);
-  gpio_set_dir(0, GPIO_IN);
-  gpio_pull_down(0);
+  /*  gpio_init(0);*/
+  /*gpio_set_dir(0, GPIO_IN);*/
+  /*gpio_pull_down(0);*/
 
   gpio_init(29);
   gpio_set_dir(29, GPIO_IN);
@@ -346,23 +380,7 @@ void led_init(void) {
   ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, false);
 }
 
-int led_time = 0;
-
-void led_task(void) {
-  for (uint i = 0; i < NUM_PIXELS; ++i) {
-    uint x = (i + (led_time >> 1)) % 64;
-    if (x < 10)
-      put_pixel(urgb_u32(0xff, 0, 0));
-    else if (x >= 15 && x < 25)
-      put_pixel(urgb_u32(0, 0xff, 0));
-    else if (x >= 30 && x < 40)
-      put_pixel(urgb_u32(0, 0, 0xff));
-    else
-      put_pixel(0);
-  }
-  led_time++;
-  sleep_ms(10);
-}
+void led_task(void) { sleep_ms(10); }
 
 void core1_main() {
   while (true) {
@@ -392,7 +410,7 @@ int main(void) {
   led_init();     // Initialize the WS2812 LED strip
 
   // Core 1 loop
-  multicore_launch_core1(core1_main);
+  //  multicore_launch_core1(core1_main);
   // Core 0 loop
   core0_main();
 }
