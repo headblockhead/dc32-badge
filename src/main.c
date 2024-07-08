@@ -144,30 +144,30 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
       return;
     }
     if (report_id == 0b00000001) {
-      // Next 21 LEDs of the keyboard.
+      // Keybaord part 2 (63 bytes) - 21 LEDs
       memcpy(leds + 63, buffer, 63);
       return;
     }
     if (report_id == 0b00000010) {
-      // Next 21 LEDs of the keyboard.
+      // Keybaord part 3 (63 bytes) - 21 LEDs
       memcpy(leds + 126, buffer, 63);
       return;
     }
     if (report_id == 0b00000011) {
-      // Next 21 LEDs of the keyboard.
+      // Keybaord part 4 (63 bytes) - 21 LEDs
       memcpy(leds + 189, buffer, 63);
       return;
     }
     if (report_id == 0b00000100) {
-      // Last 6 LEDs of the keyboard.
-      memcpy(leds + 207, buffer, 18);
-      // LED bar
-      memcpy(leds + 225, buffer + 18, 45);
-
-      // Update the LED strip with the new data.
-      for (int i = 0; i < 90; i++) {
-        put_pixel(urgb_u32(leds[i * 3], leds[i * 3 + 1], leds[i * 3 + 2]));
-      }
+      // Keybaord part 5 (18 bytes) - 6 LEDs + LED bar (45 bytes) - 15 LEDs
+      memcpy(leds + 207, buffer, 63);
+      return;
+    }
+  }
+  if (bufsize == 18) {
+    if (report_id == 0b00000101) {
+      // LED bar (18 bytes) - 6 LEDs
+      memcpy(leds + 270, buffer, 18);
       return;
     }
   }
@@ -395,7 +395,13 @@ void led_init(void) {
   ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, false);
 }
 
-void led_task(void) {}
+void led_task(void) {
+  // Update the LED strip with the new data.
+  for (int i = 0; i < 90; i++) {
+    put_pixel(urgb_u32(leds[i * 3], leds[i * 3 + 1], leds[i * 3 + 2]));
+  }
+  sleep_ms(1);
+}
 
 void core1_main() {
   while (true) {
@@ -425,7 +431,7 @@ int main(void) {
   led_init();     // Initialize the WS2812 LED strip
 
   // Core 1 loop
-  // multicore_launch_core1(core1_main);
+  multicore_launch_core1(core1_main);
   // Core 0 loop
   core0_main();
 }
