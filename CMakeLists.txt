@@ -29,7 +29,7 @@ add_compile_options(-Wall # Enable all warnings
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_compile_options(-Og) # Enable debug optimizations
 else()
-        add_compile_options(-Os) # Enable size optimizations
+        add_compile_options(-O3) # Enable speed optimizations
 endif()
 
 # Target: Create an executable

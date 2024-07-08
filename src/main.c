@@ -164,10 +164,10 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
       return;
     }
   }
-  if (bufsize == 18) {
+  if (bufsize == 45) {
     if (report_id == 0b00000101) {
-      // LED bar (18 bytes) - 6 LEDs
-      memcpy(leds + 270, buffer, 18);
+      // LED bar only (18 bytes) - 6 LEDs
+      memcpy(leds + 225, buffer, 45);
       return;
     }
   }
