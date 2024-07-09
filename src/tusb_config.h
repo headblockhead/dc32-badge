@@ -96,7 +96,7 @@ extern "C" {
 #define CFG_TUD_MIDI 0
 #define CFG_TUD_VENDOR 0
 
-// HID buffer size is large for LED data.
+// HID buffer size is large for LED data transmission
 #define CFG_TUD_HID_EP_BUFSIZE 64
 
 #ifdef __cplusplus

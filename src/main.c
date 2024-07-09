@@ -171,6 +171,7 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
       return;
     }
   }
+
   // Recived data from the host.
   if (report_type == HID_REPORT_TYPE_OUTPUT) {
     // Keyboard type report
