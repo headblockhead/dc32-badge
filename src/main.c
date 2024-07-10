@@ -98,6 +98,14 @@ void hid_task(void) {
   } else {
     send_hid_kbd_null();
   }
+
+  // Send the media key report.
+  for (int i = 0; i <= 0xFF; i++) { // Loop through all media codes.
+    if (media_commands[i]) {        // If the code is registered as active,
+      tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &i, 1); // Send the report.
+      media_commands[i] = false; // Reset the command so it is not sent again.
+    }
+  }
 }
 
 // Invoked when sent REPORT successfully to host
@@ -278,12 +286,12 @@ void make_keys(void) {
   key_array[4][1] = make_key(HID_KEY_GUI_LEFT);
   key_array[4][2] = make_modifier(KEYBOARD_MODIFIER_LEFTALT);
   key_array[4][3] = make_key(HID_KEY_VOLUME_DOWN);
-  key_array[4][4] = make_key(HID_KEY_MUTE);        // TODO: layers
-  key_array[4][5] = make_key(HID_KEY_VOLUME_UP);   // TODO: layers
-  key_array[4][6] = make_key(HID_KEY_SPACE);       // TODO: layers
-  key_array[4][7] = make_key(HID_KEY_AGAIN);       // TODO: Media Controls
-  key_array[4][8] = make_key(HID_KEY_FIND);        // TODO: Media Controls
-  key_array[4][9] = make_key(HID_KEY_APPLICATION); // TODO: Media Controls
+  key_array[4][4] = make_key(HID_KEY_MUTE);
+  key_array[4][5] = make_key(HID_KEY_VOLUME_UP); // TODO: layers
+  key_array[4][6] = make_key(HID_KEY_SPACE);     // TODO: layers
+  key_array[4][7] = make_media(HID_USAGE_CONSUMER_VOLUME_DECREMENT);
+  key_array[4][8] = make_media(HID_USAGE_CONSUMER_PLAY_PAUSE);
+  key_array[4][9] = make_media(HID_USAGE_CONSUMER_VOLUME_INCREMENT);
   key_array[4][10] = make_key(HID_KEY_HOME);
   key_array[4][11] = make_key(HID_KEY_END);
   key_array[4][12] = make_key(HID_KEY_ARROW_LEFT);
