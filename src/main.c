@@ -102,8 +102,10 @@ void hid_task(void) {
   // Send the media key report.
   for (int i = 0; i <= 0xFF; i++) { // Loop through all media codes.
     if (media_commands[i]) {        // If the code is registered as active,
-      tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &i, 1); // Send the report.
+      tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &i,
+                     1);         // Send the report.
       media_commands[i] = false; // Reset the command so it is not sent again.
+      return;
     }
   }
 }
@@ -285,13 +287,13 @@ void make_keys(void) {
   key_array[4][0] = make_modifier(KEYBOARD_MODIFIER_LEFTCTRL);
   key_array[4][1] = make_key(HID_KEY_GUI_LEFT);
   key_array[4][2] = make_modifier(KEYBOARD_MODIFIER_LEFTALT);
-  key_array[4][3] = make_key(HID_KEY_VOLUME_DOWN);
-  key_array[4][4] = make_key(HID_KEY_MUTE);
-  key_array[4][5] = make_key(HID_KEY_VOLUME_UP); // TODO: layers
-  key_array[4][6] = make_key(HID_KEY_SPACE);     // TODO: layers
-  key_array[4][7] = make_media(HID_USAGE_CONSUMER_VOLUME_DECREMENT);
-  key_array[4][8] = make_media(HID_USAGE_CONSUMER_PLAY_PAUSE);
-  key_array[4][9] = make_media(HID_USAGE_CONSUMER_VOLUME_INCREMENT);
+  key_array[4][3] = make_key(HID_KEY_0); // TODO: layer shifters
+  key_array[4][4] = make_key(HID_KEY_1);
+  key_array[4][5] = make_key(HID_KEY_2);
+  key_array[4][6] = make_key(HID_KEY_SPACE);
+  key_array[4][7] = make_media(0xEA); // cdc
+  key_array[4][8] = make_media(0xCD);
+  key_array[4][9] = make_media(0xE9);
   key_array[4][10] = make_key(HID_KEY_HOME);
   key_array[4][11] = make_key(HID_KEY_END);
   key_array[4][12] = make_key(HID_KEY_ARROW_LEFT);
@@ -335,14 +337,14 @@ void check_keys() {
 
     // Get the state of all keys in the column
     bool r1 = gpio_get(1);
-    /*bool r2 = gpio_get(0);*/
+    bool r2 = gpio_get(0);
     bool r3 = gpio_get(29);
     bool r4 = gpio_get(28);
     bool r5 = gpio_get(27);
 
     // Check the state of each key in the column for changes.
     check_key(keys[0][x], r1, &layers, &default_layer);
-    /*check_key(keys[1][x], r2, &layers, &default_layer);*/
+    check_key(keys[1][x], r2, &layers, &default_layer);
     check_key(keys[2][x], r3, &layers, &default_layer);
     check_key(keys[3][x], r4, &layers, &default_layer);
     check_key(keys[4][x], r5, &layers, &default_layer);
@@ -379,9 +381,9 @@ void row_setup(void) {
   gpio_set_dir(1, GPIO_IN);
   gpio_pull_down(1);
 
-  /*  gpio_init(0);*/
-  /*gpio_set_dir(0, GPIO_IN);*/
-  /*gpio_pull_down(0);*/
+  gpio_init(0);
+  gpio_set_dir(0, GPIO_IN);
+  gpio_pull_down(0);
 
   gpio_init(29);
   gpio_set_dir(29, GPIO_IN);
@@ -428,7 +430,7 @@ void core0_main() {
 
 // The main function, runs tinyusb and the key scanning loop.
 int main(void) {
-  debugging_init(); // Initialize debugging utilities
+  /*debugging_init(); // Initialize debugging utilities*/
 
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
