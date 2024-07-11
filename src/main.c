@@ -337,17 +337,18 @@ void check_keys() {
 
     // Get the state of all keys in the column
     bool r1 = gpio_get(1);
-    bool r2 = gpio_get(0);
+    /*bool r2 = gpio_get(0);*/
     bool r3 = gpio_get(29);
     bool r4 = gpio_get(28);
     bool r5 = gpio_get(27);
 
     // Check the state of each key in the column for changes.
-    check_key(keys[0][x], r1, &layers, &default_layer);
-    check_key(keys[1][x], r2, &layers, &default_layer);
-    check_key(keys[2][x], r3, &layers, &default_layer);
-    check_key(keys[3][x], r4, &layers, &default_layer);
-    check_key(keys[4][x], r5, &layers, &default_layer);
+    /*    check_key(keys[0][x], r1, &layers, &default_layer);*/
+    /*check_key(keys[1][x], r2, &layers, &default_layer);*/
+    /*check_key(keys[2][x], r3, &layers, &default_layer);*/
+    /*check_key(keys[3][x], r4, &layers, &default_layer);*/
+    /*check_key(keys[4][x], r5, &layers, &default_layer);*/
+    printf("Column %d: %d %d %d %d %d\n", x, r1, false, r3, r4, r5);
   }
 }
 
@@ -381,9 +382,9 @@ void row_setup(void) {
   gpio_set_dir(1, GPIO_IN);
   gpio_pull_down(1);
 
-  gpio_init(0);
-  gpio_set_dir(0, GPIO_IN);
-  gpio_pull_down(0);
+  /*  gpio_init(0);*/
+  /*gpio_set_dir(0, GPIO_IN);*/
+  /*gpio_pull_down(0);*/
 
   gpio_init(29);
   gpio_set_dir(29, GPIO_IN);
@@ -430,7 +431,7 @@ void core0_main() {
 
 // The main function, runs tinyusb and the key scanning loop.
 int main(void) {
-  /*debugging_init(); // Initialize debugging utilities*/
+  debugging_init(); // Initialize debugging utilities
 
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
