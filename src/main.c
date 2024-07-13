@@ -451,18 +451,25 @@ void core1_main() {
   }
 }
 
-uint16_t outputs_0 = 0b0000000000000000;
-uint16_t outputs_1 = 0b1111111111111111;
 void core0_main() {
   while (true) {
     /*    check_keys(); // Check the keys on the keyboard for their states.*/
     /*tud_task();   // tinyusb device task.*/
     /*hid_task();   // Send HID reports to the host.*/
 
-    sleep_ms(5000);
-    pca9555_output(&i2c1_inst, PCA9555_ADDR, outputs_0);
-    sleep_ms(5000);
-    pca9555_output(&i2c1_inst, PCA9555_ADDR, outputs_1);
+    for (int i = 0; i < 15; i++) {
+      leds[i * 3] = 0;
+      leds[i * 3 + 1] = 0;
+      leds[i * 3 + 2] = 0;
+    }
+    for (int i = 0; i < 15; i++) {
+      uint16_t outputs = outputs_lookup[i];
+      leds[i * 3] = 255;
+      leds[i * 3 + 1] = 255;
+      leds[i * 3 + 2] = 255;
+      pca9555_output(&i2c1_inst, PCA9555_ADDR, outputs);
+      sleep_ms(500);
+    }
   }
 }
 
