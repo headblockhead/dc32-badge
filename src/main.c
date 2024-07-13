@@ -98,16 +98,6 @@ void hid_task(void) {
   } else {
     send_hid_kbd_null();
   }
-
-  // Send the media key report.
-  for (int i = 0; i <= 0xFF; i++) { // Loop through all media codes.
-    if (media_commands[i]) {        // If the code is registered as active,
-      tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &i,
-                     1);         // Send the report.
-      media_commands[i] = false; // Reset the command so it is not sent again.
-      return;
-    }
-  }
 }
 
 // Invoked when sent REPORT successfully to host
@@ -115,7 +105,19 @@ void hid_task(void) {
 // Note: For composite reports, report[0] is report ID
 void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
                                 uint16_t len) {
-  // This callback is not used, but is required by tinyusb.
+  if (report[0] == REPORT_ID_KEYBOARD) {
+    // Keyboard report is done. Now, send the media key report.
+    for (int i = 0; i <= 0xFF; i++) { // Loop through all media codes.
+      if (media_commands[i]) {        // If the code is registered as active,
+        uint16_t report[1] = {i};     // Create a report with the media code.
+        tud_hid_report(REPORT_ID_CONSUMER_CONTROL, report,
+                       1);         // Send the report.
+        media_commands[i] = false; // Reset the command so it is not sent again.
+        return;
+      }
+    }
+  }
+
   (void)instance;
   (void)report;
   (void)len;
