@@ -311,7 +311,7 @@ void make_keys(void) {
 const uint8_t PCA9555_ADDR = 0b0100000; // 3 address pins are grounded.
 
 const uint16_t outputs_lookup[16] = {
-    0b0000000010000000, // 1
+    0b0000000010000000, // physical column 1
     0b0000000001000000, // 2
     0b0000000000100000, // 3
     0b0000000000010000, // 4
@@ -454,23 +454,9 @@ void core1_main() {
 
 void core0_main() {
   while (true) {
-    /*    check_keys(); // Check the keys on the keyboard for their states.*/
-    /*tud_task();   // tinyusb device task.*/
-    /*hid_task();   // Send HID reports to the host.*/
-
-    for (int i = 0; i < 15; i++) {
-      for (int i = 0; i < 15; i++) {
-        leds[i * 3] = 0;
-        leds[i * 3 + 1] = 0;
-        leds[i * 3 + 2] = 0;
-      }
-      uint16_t outputs = outputs_lookup[i];
-      leds[i * 3] = 255;
-      leds[i * 3 + 1] = 255;
-      leds[i * 3 + 2] = 255;
-      pca9555_output(&i2c1_inst, PCA9555_ADDR, outputs);
-      sleep_ms(1500);
-    }
+    check_keys(); // Check the keys on the keyboard for their states.
+    tud_task();   // tinyusb device task.
+    hid_task();   // Send HID reports to the host.
   }
 }
 
