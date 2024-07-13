@@ -319,8 +319,8 @@ const uint16_t outputs_lookup[16] = {
     0b0000000000000100, // 10
     0b0000000000000010, // 9
     0b0001000000000000, // 8
-    0b0010000000000000, // 7
     0b0100000000000000, // 6
+    0b0010000000000000, // 7
     0b1000000000000000, // 5
     0b0000100000000000, // 4
     0b0000010000000000, // 3
@@ -328,27 +328,57 @@ const uint16_t outputs_lookup[16] = {
     0b0000000100000000, // 1
 };
 
+// debounce checks if keys have been pressed for more than 100us, and if so, it
+// runs check_key.
+void debounce(uint8_t column) {
+  // Get the state of all keys in the column
+  bool r1 = gpio_get(1);
+  bool r2 = gpio_get(0);
+  bool r3 = gpio_get(29);
+  bool r4 = gpio_get(28);
+  bool r5 = gpio_get(27);
+
+  bool r1_prev = r1;
+  bool r2_prev = r2;
+  bool r3_prev = r3;
+  bool r4_prev = r4;
+  bool r5_prev = r5;
+
+  // Wait for 10us
+  sleep_us(10);
+
+  // Get the state of all keys in the column
+  r1 = gpio_get(1);
+  r2 = gpio_get(0);
+  r3 = gpio_get(29);
+  r4 = gpio_get(28);
+  r5 = gpio_get(27);
+
+  // If the key is still pressed after 20ms, run check_key.
+  if (r1 == r1_prev) {
+    check_key(keys[0][column], r1, &layers, &default_layer);
+  }
+  if (r2 == r2_prev) {
+    check_key(keys[1][column], r2, &layers, &default_layer);
+  }
+  if (r3 == r3_prev) {
+    check_key(keys[2][column], r3, &layers, &default_layer);
+  }
+  if (r4 == r4_prev) {
+    check_key(keys[3][column], r4, &layers, &default_layer);
+  }
+  if (r5 == r5_prev) {
+    check_key(keys[4][column], r5, &layers, &default_layer);
+  }
+}
+
 void check_keys() {
   // PCA9555 uses two sets of 8-bit outputs
   // Loop through all columns
   for (uint8_t x = 0; x < KEYBOARD_X; x++) {
     uint16_t column_outputs = outputs_lookup[x];
     pca9555_output(&i2c1_inst, PCA9555_ADDR, column_outputs);
-
-    // Get the state of all keys in the column
-    bool r1 = gpio_get(1);
-    /*bool r2 = gpio_get(0);*/
-    bool r3 = gpio_get(29);
-    bool r4 = gpio_get(28);
-    bool r5 = gpio_get(27);
-
-    // Check the state of each key in the column for changes.
-    /*    check_key(keys[0][x], r1, &layers, &default_layer);*/
-    /*check_key(keys[1][x], r2, &layers, &default_layer);*/
-    /*check_key(keys[2][x], r3, &layers, &default_layer);*/
-    /*check_key(keys[3][x], r4, &layers, &default_layer);*/
-    /*check_key(keys[4][x], r5, &layers, &default_layer);*/
-    printf("Column %d: %d %d %d %d %d\n", x, r1, false, r3, r4, r5);
+    debounce(x);
   }
 }
 
@@ -382,9 +412,9 @@ void row_setup(void) {
   gpio_set_dir(1, GPIO_IN);
   gpio_pull_down(1);
 
-  /*  gpio_init(0);*/
-  /*gpio_set_dir(0, GPIO_IN);*/
-  /*gpio_pull_down(0);*/
+  gpio_init(0);
+  gpio_set_dir(0, GPIO_IN);
+  gpio_pull_down(0);
 
   gpio_init(29);
   gpio_set_dir(29, GPIO_IN);
@@ -421,17 +451,24 @@ void core1_main() {
   }
 }
 
+uint16_t outputs_0 = 0b0000000000000000;
+uint16_t outputs_1 = 0b1111111111111111;
 void core0_main() {
   while (true) {
-    check_keys(); // Check the keys on the keyboard for their states.
-    tud_task();   // tinyusb device task.
-    hid_task();   // Send HID reports to the host.
+    /*    check_keys(); // Check the keys on the keyboard for their states.*/
+    /*tud_task();   // tinyusb device task.*/
+    /*hid_task();   // Send HID reports to the host.*/
+
+    sleep_ms(5000);
+    pca9555_output(&i2c1_inst, PCA9555_ADDR, outputs_0);
+    sleep_ms(5000);
+    pca9555_output(&i2c1_inst, PCA9555_ADDR, outputs_1);
   }
 }
 
 // The main function, runs tinyusb and the key scanning loop.
 int main(void) {
-  debugging_init(); // Initialize debugging utilities
+  /*debugging_init(); // Initialize debugging utilities*/
 
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
