@@ -9,7 +9,7 @@
 #include "bsp/board.h"
 #include "hardware/pio.h"
 #include "pico_pca9555.h"
-#include "rotary_encoder.pio.h"
+#include "quadrature_encoder.pio.h"
 #include "squirrel_constructors.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
@@ -463,33 +463,21 @@ void led_task(void) {
 #define ROTARY_SW_PIN 2
 
 PIO rot_pio = pio1;
-uint rot_sm;
-
-// Callback function for up action from rotary pio.
-void rotary_up_callback() {
-  board_led_off();
-  pio_interrupt_clear(rot_pio, 0);
-}
-
-// Callback function for down action from rotary pio.
-void rotary_down_callback() {
-  board_led_on();
-  pio_interrupt_clear(rot_pio, 1);
-}
+int new_value, delta, old_value = 0;
+const uint rot_sm = 0; // must be loaded at 0
 
 void rotary_init(void) {
-  uint rot_pio_offset = pio_add_program(rot_pio, &rotary_encoder_program);
-  rot_sm = pio_claim_unused_sm(rot_pio, true);
+  pio_add_program(rot_pio, &quadrature_encoder_program);
+  quadrature_encoder_program_init(rot_pio, rot_sm, ROTARY_A_PIN, 0);
+}
 
-  // Enable irq interrupts for up and down actions.
-  pio_set_irq0_source_enabled(rot_pio, pis_interrupt0, true);
-  irq_add_shared_handler(PIO1_IRQ_0, rotary_up_callback, 0);
-  irq_set_enabled(PIO1_IRQ_0, true);
-  pio_set_irq1_source_enabled(rot_pio, pis_interrupt1, true);
-  irq_add_shared_handler(PIO1_IRQ_1, rotary_down_callback, 0);
-  irq_set_enabled(PIO1_IRQ_1, true);
+void rotary_task(void) {
+  new_value = quadrature_encoder_get_count(rot_pio, rot_sm);
+  delta = new_value - old_value;
+  old_value = new_value;
 
-  rotary_encoder_program_init(rot_pio, rot_sm, rot_pio_offset, ROTARY_A_PIN);
+  printf("position %8d, delta %6d\n", new_value, delta);
+  sleep_ms(100);
 }
 
 void core1_main() {
