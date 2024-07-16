@@ -477,12 +477,18 @@ void rotary_task(void) {
   old_value = new_value;
 
   printf("position %8d, delta %6d\n", new_value, delta);
+  if (delta > 1) {
+    board_led_off();
+  } else if (delta < -1) {
+    board_led_on();
+  }
   sleep_ms(100);
 }
 
 void core1_main() {
   while (true) {
     led_task();
+    rotary_task();
   }
 }
 
