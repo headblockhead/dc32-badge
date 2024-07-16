@@ -46,8 +46,9 @@ target_include_directories(slab PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/src
                 )
 
-# Generate the PIO header file
+# Generate the PIO header files
 pico_generate_pio_header(slab ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
+pico_generate_pio_header(slab ${CMAKE_CURRENT_LIST_DIR}/src/rotary_encoder.pio)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/external/squirrel/include) # Include SQUIRREL headers in target and dependencies.
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/external/squirrel) # Add SQUIRREL as a subdirectory. This will build the library.

@@ -9,14 +9,18 @@
 #include "bsp/board.h"
 #include "hardware/pio.h"
 #include "pico_pca9555.h"
+#include "rotary_encoder.pio.h"
 #include "squirrel_constructors.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
 #include "ws2812.pio.h"
 #include <squirrel.h>
 
+// neopixel helpers
+
 #define NUM_PIXELS 90
 #define WS2812_PIN 26
+uint8_t leds[NUM_PIXELS * 3] = {0}; // The state of each LED in the LED strip.
 
 static inline void put_pixel(uint32_t pixel_grb) {
   pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
@@ -25,6 +29,8 @@ static inline void put_pixel(uint32_t pixel_grb) {
 static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
   return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
 }
+
+// USB HID
 
 // Send a HID report with the given keycodes to the host.
 static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
@@ -138,8 +144,6 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
   return 0;
 }
 
-uint8_t leds[270] = {0}; // The state of each LED in the LED strip.
-
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
@@ -208,13 +212,13 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
   }
 }
 
-// Width and height of the keyboard matrix.
+// Keyboard helpers
 const int KEYBOARD_X = 15;
 const int KEYBOARD_Y = 5;
 
-struct key *keys[5][15]; // Pointer array to the key array.
-
-struct key key_array[5][15]; // The base key array.
+struct key
+    *keys[5][15]; // Array of pointers to the array of keys on the keyboard.
+struct key key_array[5][15]; // An array of keys on the keyboard.
 
 void make_keys(void) {
   // Row 1
@@ -310,8 +314,12 @@ void make_keys(void) {
   }
 };
 
-const uint8_t PCA9555_ADDR = 0b0100000; // 3 address pins are grounded.
+// 3 address pins are grounded.
+// See https://www.nxp.com/docs/en/data-sheet/PCA9555.pdf for more details.
+const uint8_t PCA9555_ADDR = 0b0100000;
 
+// outputs_lookup is a lookup table that provides the correct pin outputs from
+// the PCA9555 chip for each column of the keyboard.
 const uint16_t outputs_lookup[16] = {
     0b0000000010000000, // physical column 1
     0b0000000001000000, // 2
@@ -328,11 +336,12 @@ const uint16_t outputs_lookup[16] = {
     0b0000010000000000, // 13
     0b0000001000000000, // 14
     0b0000000100000000, // 15
-    0b1000000000000000, // unused
+    0b1000000000000000, // unused - not connected
 };
 
-// debounce checks if keys have been pressed for more than 100us, and if so, it
-// runs check_key.
+// debounce checks keys twice over 200us and if the key is still in the same
+// position, it counts is as confirmed and runs check_key. This prevents
+// chatter. (false key activations)
 void debounce(uint8_t column) {
   // Get the state of all keys in the column
   bool r1 = gpio_get(1);
@@ -350,14 +359,14 @@ void debounce(uint8_t column) {
   // Wait for 10us
   sleep_us(10);
 
-  // Get the state of all keys in the column
+  // Get the state of all keys in the column again.
   r1 = gpio_get(1);
   r2 = gpio_get(0);
   r3 = gpio_get(29);
   r4 = gpio_get(28);
   r5 = gpio_get(27);
 
-  // If the key is still pressed after 20ms, run check_key.
+  // If the key is still in the same state after 20ms, run check_key.
   if (r1 == r1_prev) {
     check_key(keys[0][column], r1, &layers, &default_layer);
   }
@@ -375,6 +384,7 @@ void debounce(uint8_t column) {
   }
 }
 
+// check_keys loops through all columns and runs a check on each key.
 void check_keys() {
   // PCA9555 uses two sets of 8-bit outputs
   // Loop through all columns
@@ -432,12 +442,13 @@ void row_setup(void) {
   gpio_pull_down(27);
 }
 
+PIO led_pio = pio0;
+
 void led_init(void) {
-  // Initialize the PIO state machine.
-  PIO pio = pio0;
-  uint offset = pio_add_program(pio, &ws2812_program);
-  uint sm = pio_claim_unused_sm(pio, true);
-  ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, false);
+  uint led_pio_offset = pio_add_program(led_pio, &ws2812_program);
+  uint led_sm = pio_claim_unused_sm(led_pio, true);
+  ws2812_program_init(led_pio, led_sm, led_pio_offset, WS2812_PIN, 800000,
+                      false);
 }
 
 void led_task(void) {
@@ -446,6 +457,39 @@ void led_task(void) {
     put_pixel(urgb_u32(leds[i * 3], leds[i * 3 + 1], leds[i * 3 + 2]));
   }
   sleep_ms(1);
+}
+
+#define ROTARY_A_PIN 3 // The B pin must be the A pin + 1.
+#define ROTARY_SW_PIN 2
+
+PIO rot_pio = pio1;
+uint rot_sm;
+
+// Callback function for up action from rotary pio.
+void rotary_up_callback() {
+  board_led_off();
+  pio_interrupt_clear(rot_pio, 0);
+}
+
+// Callback function for down action from rotary pio.
+void rotary_down_callback() {
+  board_led_on();
+  pio_interrupt_clear(rot_pio, 1);
+}
+
+void rotary_init(void) {
+  uint rot_pio_offset = pio_add_program(rot_pio, &rotary_encoder_program);
+  rot_sm = pio_claim_unused_sm(rot_pio, true);
+
+  // Enable irq interrupts for up and down actions.
+  pio_set_irq0_source_enabled(rot_pio, pis_interrupt0, true);
+  irq_add_shared_handler(PIO1_IRQ_0, rotary_up_callback, 0);
+  irq_set_enabled(PIO1_IRQ_0, true);
+  pio_set_irq1_source_enabled(rot_pio, pis_interrupt1, true);
+  irq_add_shared_handler(PIO1_IRQ_1, rotary_down_callback, 0);
+  irq_set_enabled(PIO1_IRQ_1, true);
+
+  rotary_encoder_program_init(rot_pio, rot_sm, rot_pio_offset, ROTARY_A_PIN);
 }
 
 void core1_main() {
@@ -474,6 +518,7 @@ int main(void) {
   row_setup();    // Initialize the rows of the keyboard
   pca9555_init(); // Initialize the PCA9555 I2C GPIO expander
   led_init();     // Initialize the WS2812 LED strip
+  rotary_init();  // Initialize the rotary encoder
 
   // Core 1 loop
   multicore_launch_core1(core1_main);
