@@ -3,6 +3,16 @@ Experimental firmware for the slab keyboard. Hardware under development, to be r
 
 ## Tasks
 
+### Upload-debug
+Directory: ./build
+Requires: build-debug
+
+Uploads the firmware to the keyboard with debug outputs.
+
+```bash
+cp ./slab.uf2 $(findmnt -S LABEL=RPI-RP2 -o TARGET -fn)
+```
+
 ### Build
 Directory: ./build
 

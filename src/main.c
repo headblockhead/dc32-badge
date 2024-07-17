@@ -410,13 +410,20 @@ void pca9555_init(void) {
 };
 
 void debugging_init(void) {
-  stdio_init_all();
   uart_init(uart0, 115200); // UART debugging
 
   // Configure the board's LED pins as an output for debugging.
+  gpio_init(16);
+  gpio_set_dir(16, GPIO_OUT);
+  gpio_put(16, 1);
+
+  gpio_init(17);
+  gpio_set_dir(17, GPIO_OUT);
+  gpio_put(17, 1);
+
   gpio_init(25);
   gpio_set_dir(25, GPIO_OUT);
-  gpio_put(25, 0);
+  gpio_put(25, 1);
 }
 
 void row_setup(void) {
@@ -477,9 +484,7 @@ void rotary_task(void) {
   old_value = new_value;
 
   if (new_value == 0) {
-    board_led_on();
   } else {
-    board_led_off();
   }
   sleep_ms(100);
 }
@@ -501,7 +506,7 @@ void core0_main() {
 
 // The main function, runs tinyusb and the key scanning loop.
 int main(void) {
-  /*debugging_init(); // Initialize debugging utilities*/
+  debugging_init(); // Initialize debugging utilities
 
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
