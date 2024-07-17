@@ -11,6 +11,7 @@
 #include "pico_pca9555.h"
 #include "quadrature_encoder.pio.h"
 #include "squirrel_constructors.h"
+#include "ssd1306.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
 #include "ws2812.pio.h"
@@ -487,6 +488,18 @@ void rotary_task(void) {
   } else {
   }
   sleep_ms(100);
+}
+
+// I2C Display
+#define I2C_PORT i2c1
+ssd1306_t display;
+void display_init(void) {
+  i2c_init(I2C_PORT, 1000000); // 1 MHz
+  gpio_set_function(6, GPIO_FUNC_I2C);
+  gpio_set_function(7, GPIO_FUNC_I2C);
+  gpio_pull_up(6);
+  gpio_pull_up(7);
+  ssd1306_init(&display, 128, 32, 0x3C, I2C_PORT);
 }
 
 void core1_main() {
