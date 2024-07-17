@@ -398,7 +398,7 @@ void check_keys() {
 
 void pca9555_init(void) {
   // Initialize the I2C bus.
-  i2c_init(&i2c1_inst, 100000);
+  i2c_init(&i2c1_inst, 400000);
 
   // Configure the I2C pins.
   gpio_set_function(6, GPIO_FUNC_I2C);
@@ -491,24 +491,33 @@ void rotary_task(void) {
 }
 
 // I2C Display
-#define I2C_PORT i2c1
 ssd1306_t display;
+
 void display_init(void) {
-  i2c_init(I2C_PORT, 1000000); // 1 MHz
-  gpio_set_function(6, GPIO_FUNC_I2C);
-  gpio_set_function(7, GPIO_FUNC_I2C);
-  gpio_pull_up(6);
-  gpio_pull_up(7);
-  ssd1306_init(&display, 128, 32, 0x3C, I2C_PORT);
+  // i2c init already handled by pca9555_init
+  ssd1306_init(&display, 128, 32, 0x3C, &i2c1_inst);
+  ssd1306_clear(&display);
 }
 
+void display_task(void) {
+  ssd1306_clear(&display);
+  // draw the basic menu layout
+  ssd1306_draw_line(&display, 0, 0, 128, 0); // horizontal line across the top
+  ssd1306_draw_line(&display, 0, 10, 128, 10);
+  ssd1306_show(&display);
+  sleep_ms(1000);
+}
+
+// Core 1 deals with the LED strip, rotary encoder and OLED display.
 void core1_main() {
   while (true) {
-    led_task();
-    rotary_task();
+    //    led_task();
+    //    rotary_task();
+    display_task();
   }
 }
 
+// Core 0 deals with keyboard and USB HID.
 void core0_main() {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
@@ -519,7 +528,7 @@ void core0_main() {
 
 // The main function, runs tinyusb and the key scanning loop.
 int main(void) {
-  debugging_init(); // Initialize debugging utilities
+  //  debugging_init(); // Initialize debugging utilities
 
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
@@ -530,6 +539,7 @@ int main(void) {
   pca9555_init(); // Initialize the PCA9555 I2C GPIO expander
   led_init();     // Initialize the WS2812 LED strip
   rotary_init();  // Initialize the rotary encoder
+  display_init(); // Initialize the OLED display
 
   // Core 1 loop
   multicore_launch_core1(core1_main);
