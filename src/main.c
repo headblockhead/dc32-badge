@@ -491,7 +491,11 @@ ssd1306_t display;
 
 void display_task(void) {
   ssd1306_clear(&display);
-  ssd1306_draw_square(&display, 0, 0, 10, 10);
+
+  // Draw the main screen.
+  ssd1306_draw_string(&display, 0, 0, 3, "Test");
+
+  // Update the display.
   if (mutex_try_enter(&i2c_mutex, NULL)) {
     ssd1306_show(&display);
     mutex_exit(&i2c_mutex);
@@ -509,6 +513,8 @@ void i2c_devices_init(void) {
   // Initialize the I2C mutex.
   mutex_init(&i2c_mutex);
 
+  // We don't need to lock the I2C mutex here because this function is run
+  // before the multicore loop.
   pca9555_configure(&i2c1_inst, PCA9555_ADDR, 0x0000);
   ssd1306_init(&display, 128, 32, 0x3C, i2c1);
 }
