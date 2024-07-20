@@ -517,13 +517,14 @@ void i2c_devices_init(void) {
   // before the multicore loop.
   pca9555_configure(&i2c1_inst, PCA9555_ADDR, 0x0000);
   ssd1306_init(&display, 128, 32, 0x3C, i2c1);
+  // ssd1306_set_rotation(&display, ROT_180);
 }
 
 // Core 1 deals with the LED strip, rotary encoder and OLED display.
 void core1_main() {
   while (true) {
-    led_task();
-    rotary_task();
+    /*led_task();*/
+    /*rotary_task();*/
     display_task();
   }
 }
@@ -531,9 +532,9 @@ void core1_main() {
 // Core 0 deals with keyboard and USB HID.
 void core0_main() {
   while (true) {
-    check_keys(); // Check the keys on the keyboard for their states.
-    tud_task();   // tinyusb device task.
-    hid_task();   // Send HID reports to the host.
+    /*check_keys(); // Check the keys on the keyboard for their states.*/
+    tud_task(); // tinyusb device task.
+    hid_task(); // Send HID reports to the host.
   }
 }
 
