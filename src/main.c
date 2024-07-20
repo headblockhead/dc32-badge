@@ -1,13 +1,10 @@
+#include "bsp/board.h"
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
+#include "hardware/pio.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
-#include <stdio.h>
-#include <string.h>
-
-#include "bsp/board.h"
-#include "hardware/pio.h"
 #include "pico_pca9555.h"
 #include "quadrature_encoder.pio.h"
 #include "squirrel_constructors.h"
@@ -16,6 +13,9 @@
 #include "usb_descriptors.h"
 #include "ws2812.pio.h"
 #include <squirrel.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // I2C mutex
 mutex_t i2c_mutex;
@@ -483,7 +483,6 @@ void rotary_task(void) {
   if (new_value == 0) {
   } else {
   }
-  sleep_ms(100);
 }
 
 // I2C Display
@@ -493,13 +492,14 @@ void display_task(void) {
   ssd1306_clear(&display);
 
   // Draw the main screen.
-  ssd1306_draw_string(&display, 0, 0, 3, "Test");
+  char time[10];
+  sprintf(time, "%d", time_us_32());
+  ssd1306_draw_string(&display, 0, 0, 1, time);
 
   // Update the display.
-  if (mutex_try_enter(&i2c_mutex, NULL)) {
-    ssd1306_show(&display);
-    mutex_exit(&i2c_mutex);
-  }
+  mutex_enter_blocking(&i2c_mutex);
+  ssd1306_show(&display);
+  mutex_exit(&i2c_mutex);
 }
 
 void i2c_devices_init(void) {
