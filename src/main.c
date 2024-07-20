@@ -396,20 +396,6 @@ void check_keys() {
   }
 }
 
-void pca9555_init(void) {
-  // Initialize the I2C bus.
-  i2c_init(&i2c1_inst, 400000);
-
-  // Configure the I2C pins.
-  gpio_set_function(6, GPIO_FUNC_I2C);
-  gpio_set_function(7, GPIO_FUNC_I2C);
-  gpio_pull_up(6);
-  gpio_pull_up(7);
-
-  // Configure the PCA9555's pins as outputs.
-  pca9555_configure(&i2c1_inst, PCA9555_ADDR, 0x0000);
-};
-
 void debugging_init(void) {
   uart_init(uart0, 115200); // UART debugging
 
@@ -450,6 +436,8 @@ void row_setup(void) {
   gpio_pull_down(27);
 }
 
+// LED strip
+
 PIO led_pio = pio0;
 
 void led_init(void) {
@@ -466,6 +454,8 @@ void led_task(void) {
   }
   sleep_ms(1);
 }
+
+// Rotary Encoder
 
 #define ROTARY_A_PIN 3 // The B pin must be the A pin + 1.
 #define ROTARY_SW_PIN 2
@@ -493,26 +483,33 @@ void rotary_task(void) {
 // I2C Display
 ssd1306_t display;
 
-void display_init(void) {
-  // i2c init already handled by pca9555_init
-  ssd1306_init(&display, 128, 32, 0x3C, &i2c1_inst);
-  ssd1306_clear(&display);
-}
-
 void display_task(void) {
   ssd1306_clear(&display);
   // draw the basic menu layout
-  ssd1306_draw_line(&display, 0, 0, 128, 0); // horizontal line across the top
-  ssd1306_draw_line(&display, 0, 10, 128, 10);
+  ssd1306_draw_square(&display, 10, 10, 10, 10);
   ssd1306_show(&display);
-  sleep_ms(1000);
+  sleep_ms(10);
+}
+
+void i2c_devices_init(void) {
+  // Initialize the I2C bus.
+  i2c_init(&i2c1_inst, 400000); // 400kHz
+
+  // Configure the I2C pins.
+  gpio_set_function(6, GPIO_FUNC_I2C);
+  gpio_set_function(7, GPIO_FUNC_I2C);
+  gpio_pull_up(6);
+  gpio_pull_up(7);
+
+  pca9555_configure(&i2c1_inst, PCA9555_ADDR, 0x0000);
+  ssd1306_init(&display, 128, 32, 0x3C, i2c1);
 }
 
 // Core 1 deals with the LED strip, rotary encoder and OLED display.
 void core1_main() {
   while (true) {
-    //    led_task();
-    //    rotary_task();
+    led_task();
+    rotary_task();
     display_task();
   }
 }
@@ -534,12 +531,11 @@ int main(void) {
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
   tusb_init();                // Initialize tinyusb
 
-  make_keys();    // Initialize the keys on the keyboard
-  row_setup();    // Initialize the rows of the keyboard
-  pca9555_init(); // Initialize the PCA9555 I2C GPIO expander
-  led_init();     // Initialize the WS2812 LED strip
-  rotary_init();  // Initialize the rotary encoder
-  display_init(); // Initialize the OLED display
+  make_keys();        // Initialize the keys on the keyboard
+  row_setup();        // Initialize the rows of the keyboard
+  led_init();         // Initialize the WS2812 LED strip
+  rotary_init();      // Initialize the rotary encoder
+  i2c_devices_init(); // Initialize the I2C devices
 
   // Core 1 loop
   multicore_launch_core1(core1_main);
