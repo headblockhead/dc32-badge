@@ -498,8 +498,6 @@ void i2c_devices_init(void) {
   // Configure the I2C pins.
   gpio_set_function(6, GPIO_FUNC_I2C);
   gpio_set_function(7, GPIO_FUNC_I2C);
-  gpio_pull_up(6);
-  gpio_pull_up(7);
 
   pca9555_configure(&i2c1_inst, PCA9555_ADDR, 0x0000);
   ssd1306_init(&display, 128, 32, 0x3C, i2c1);
