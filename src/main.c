@@ -476,7 +476,7 @@ void rotary_init(void) {
 }
 
 void rotary_task(void) {
-  new_value = quadrature_encoder_get_count(rot_pio, rot_sm);
+  new_value = -(quadrature_encoder_get_count(rot_pio, rot_sm) / 2);
   delta = new_value - old_value;
   old_value = new_value;
 
@@ -493,7 +493,7 @@ void display_task(void) {
 
   // Draw the main screen.
   char time[10];
-  sprintf(time, "%d", time_us_32());
+  sprintf(time, "%d", new_value);
   ssd1306_draw_string(&display, 0, 0, 1, time);
 
   // Update the display.
