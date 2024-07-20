@@ -31,6 +31,10 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
   return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
 }
 
+// multicore helpers
+
+bool i2c_busy = false;
+
 // USB HID
 
 // Send a HID report with the given keycodes to the host.
@@ -391,7 +395,11 @@ void check_keys() {
   // Loop through all columns
   for (uint8_t x = 0; x < KEYBOARD_X; x++) {
     uint16_t column_outputs = outputs_lookup[x];
-    pca9555_output(&i2c1_inst, PCA9555_ADDR, column_outputs);
+    if (!i2c_busy) {
+      i2c_busy = true;
+      pca9555_output(&i2c1_inst, PCA9555_ADDR, column_outputs);
+      i2c_busy = false;
+    }
     debounce(x);
   }
 }
@@ -484,10 +492,13 @@ void rotary_task(void) {
 ssd1306_t display;
 
 void display_task(void) {
-  sleep_ms(100);
   ssd1306_clear(&display);
   ssd1306_draw_square(&display, 0, 0, 10, 10);
-  ssd1306_show(&display);
+  if (!i2c_busy) {
+    i2c_busy = true;
+    ssd1306_show(&display);
+    i2c_busy = false;
+  }
 }
 
 void i2c_devices_init(void) {
@@ -500,15 +511,13 @@ void i2c_devices_init(void) {
 
   pca9555_configure(&i2c1_inst, PCA9555_ADDR, 0x0000);
   ssd1306_init(&display, 128, 32, 0x3C, i2c1);
-  ssd1306_clear(&display);
-  ssd1306_show(&display);
 }
 
 // Core 1 deals with the LED strip, rotary encoder and OLED display.
 void core1_main() {
   while (true) {
-    // led_task();
-    // rotary_task();
+    led_task();
+    rotary_task();
     display_task();
   }
 }
@@ -516,9 +525,9 @@ void core1_main() {
 // Core 0 deals with keyboard and USB HID.
 void core0_main() {
   while (true) {
-    // check_keys(); // Check the keys on the keyboard for their states.
-    tud_task(); // tinyusb device task.
-    hid_task(); // Send HID reports to the host.
+    check_keys(); // Check the keys on the keyboard for their states.
+    tud_task();   // tinyusb device task.
+    hid_task();   // Send HID reports to the host.
   }
 }
 
