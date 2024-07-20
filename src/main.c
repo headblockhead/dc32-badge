@@ -16,6 +16,13 @@
 #include "usb_descriptors.h"
 #include "ws2812.pio.h"
 #include <squirrel.h>
+#include <stdatomic.h>
+
+// I2C mutex
+_Atomic bool i2c_free = false;
+// Used for comparing and exchanging the i2c_free variable.
+bool i2c_free_state = true;
+bool i2c_busy_state = false;
 
 // neopixel helpers
 
@@ -30,10 +37,6 @@ static inline void put_pixel(uint32_t pixel_grb) {
 static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
   return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
 }
-
-// multicore helpers
-
-bool i2c_busy = false;
 
 // USB HID
 
@@ -395,10 +398,11 @@ void check_keys() {
   // Loop through all columns
   for (uint8_t x = 0; x < KEYBOARD_X; x++) {
     uint16_t column_outputs = outputs_lookup[x];
-    if (!i2c_busy) {
-      i2c_busy = true;
+    if (atomic_compare_exchange_strong(
+            &i2c_free, &i2c_free_state,
+            i2c_busy_state)) { // If i2c is free, make it busy.
       pca9555_output(&i2c1_inst, PCA9555_ADDR, column_outputs);
-      i2c_busy = false;
+      atomic_store(&i2c_free, 0); // Make i2c free again.
     }
     debounce(x);
   }
@@ -494,11 +498,12 @@ ssd1306_t display;
 void display_task(void) {
   ssd1306_clear(&display);
   ssd1306_draw_square(&display, 0, 0, 10, 10);
-  if (!i2c_busy) {
-    i2c_busy = true;
+  if (atomic_compare_exchange_strong(
+          &i2c_free, &i2c_free_state,
+          i2c_busy_state)) { // If i2c is free, make it busy.
     ssd1306_show(&display);
-    i2c_busy = false;
-  }
+    atomic_store(&i2c_free, 0); // Make i2c free again.
+  };
 }
 
 void i2c_devices_init(void) {
