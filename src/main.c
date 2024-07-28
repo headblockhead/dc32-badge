@@ -485,16 +485,18 @@ void display_task(void) {
   // Draw the main screen.
 
   // Layer number display
-  ssd1306_draw_empty_square(&display, 0, 20, 16, 10);
-  char layer_number[2]; // 0-16
-  for (int i = 15; i >= default_layer; i++) {
-    uint8_t layer_index = 16 - i;
+  ssd1306_draw_empty_square(&display, 0, 20, 15, 10);
+  char layer_number[2];
+  for (int i = 15; i >= default_layer; i++) { // 15-0
+    uint8_t layer_value = 16 - i;             // 0-15
     if (!layers[i]) {
       continue;
     }
-    sprintf(layer_number, "%d", layer_index);
-    if (layer_index < 10) {
-      layer_number[1] = '0';
+    sprintf(layer_number, "%d", layer_value);
+    if (layer_value <
+        10) { // If the number is less than 10, add a 0 to the start
+      layer_number[1] = layer_number[0];
+      layer_number[0] = '0';
     }
     break;
   }
