@@ -21,7 +21,6 @@
 mutex_t i2c_mutex;
 
 // neopixel helpers
-
 #define NUM_PIXELS 90
 #define WS2812_PIN 26
 uint8_t leds[NUM_PIXELS * 3] = {0}; // The state of each LED in the LED strip.
@@ -117,15 +116,11 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
                                 uint16_t len) {
   if (report[0] == REPORT_ID_KEYBOARD) {
     // Keyboard report is done. Now, send the media key report.
-    for (int i = 0; i <= 0xFF; i++) { // Loop through all media codes.
-      if (media_commands[i]) {        // If the code is registered as active,
-        uint16_t report[1] = {i};     // Create a report with the media code.
-        tud_hid_report(REPORT_ID_CONSUMER_CONTROL, report,
-                       1);         // Send the report.
-        media_commands[i] = false; // Reset the command so it is not sent again.
-        return;
-      }
-    }
+    //    if (active_media_code) { // If there is a media key to send,
+    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &active_media_code,
+                   2); // Send the report.
+    return;
+    //    }
   }
 
   (void)instance;
