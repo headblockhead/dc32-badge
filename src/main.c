@@ -467,7 +467,7 @@ void led_task(void) {
 #define ROTARY_SW_PIN 2
 
 PIO rot_pio = pio1;
-int new_value, delta, old_value = 0;
+int rotary_value, rotary_delta, rotary_last_value = 0;
 const uint rot_sm = 0; // must be loaded at 0
 
 void rotary_init(void) {
@@ -476,13 +476,9 @@ void rotary_init(void) {
 }
 
 void rotary_task(void) {
-  new_value = -(quadrature_encoder_get_count(rot_pio, rot_sm) / 2);
-  delta = new_value - old_value;
-  old_value = new_value;
-
-  if (new_value == 0) {
-  } else {
-  }
+  rotary_value = -(quadrature_encoder_get_count(rot_pio, rot_sm) / 2);
+  rotary_delta = rotary_value - rotary_last_value;
+  rotary_last_value = rotary_value;
 }
 
 // I2C Display
@@ -493,7 +489,7 @@ void display_task(void) {
 
   // Draw the main screen.
   char time[10];
-  sprintf(time, "%d", new_value);
+  sprintf(time, "%d", rotary_value);
   ssd1306_draw_string(&display, 0, 0, 1, time);
 
   // Update the display.
