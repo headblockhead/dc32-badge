@@ -296,9 +296,9 @@ void make_keys(void) {
   key_array[4][4] = make_key(HID_KEY_1);
   key_array[4][5] = make_key(HID_KEY_2);
   key_array[4][6] = make_key(HID_KEY_SPACE);
-  key_array[4][7] = make_media(0xEA); // cdc
-  key_array[4][8] = make_media(0xCD);
-  key_array[4][9] = make_media(0xE9);
+  key_array[4][7] = make_media(HID_USAGE_CONSUMER_VOLUME_DECREMENT);
+  key_array[4][8] = make_media(HID_USAGE_CONSUMER_PLAY_PAUSE);
+  key_array[4][9] = make_media(HID_USAGE_CONSUMER_VOLUME_INCREMENT);
   key_array[4][10] = make_key(HID_KEY_HOME);
   key_array[4][11] = make_key(HID_KEY_END);
   key_array[4][12] = make_key(HID_KEY_ARROW_LEFT);
@@ -483,9 +483,22 @@ void display_task(void) {
   ssd1306_clear(&display);
 
   // Draw the main screen.
-  char time[10];
-  sprintf(time, "%d", rotary_value);
-  ssd1306_draw_string(&display, 0, 0, 1, time);
+
+  // Layer number display
+  ssd1306_draw_empty_square(&display, 0, 20, 16, 10);
+  char layer_number[2]; // 0-16
+  for (int i = 15; i >= default_layer; i++) {
+    uint8_t layer_index = 16 - i;
+    if (!layers[i]) {
+      continue;
+    }
+    sprintf(layer_number, "%d", layer_index);
+    if (layer_index < 10) {
+      layer_number[1] = '0';
+    }
+    break;
+  }
+  ssd1306_draw_string(&display, 2, 22, 1, layer_number);
 
   // Update the display.
   mutex_enter_blocking(&i2c_mutex);
