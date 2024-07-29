@@ -152,6 +152,8 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
   (void)reqlen;
   return 0;
 }
+uint8_t temp_leds[NUM_PIXELS * 3] = {0};
+
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
@@ -162,25 +164,25 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
 
   // Check if the report is for the LED strip.
   if (bufsize == 63) {
-    uint8_t temp_leds[NUM_PIXELS * 3] = {0};
     if (report_id == 0b00000000) {
-      memcpy(temp_leds, buffer, NUM_PIXELS * 3);
+      memcpy(leds, temp_leds, NUM_PIXELS * 3);
       return;
     }
     if (report_id == 0b00000001) {
-      // run length decode
-      for (uint8_t i = 0; i < 63; i += 4) {
-        uint8_t r = buffer[i];
-        uint8_t g = buffer[i + 1];
-        uint8_t b = buffer[i + 2];
-        uint8_t length = buffer[i + 3];
+      // Run length decode.
+      uint8_t data_index = 0;
+      for (uint8_t i = 0; i < bufsize; i += 4) {
+        uint8_t length = buffer[i];
+        uint8_t r = buffer[i + 1];
+        uint8_t g = buffer[i + 2];
+        uint8_t b = buffer[i + 3];
         for (uint8_t j = 0; j < length; j++) {
-          temp_leds[i / 4 * 3 + j * 3] = r;
-          temp_leds[i / 4 * 3 + j * 3 + 1] = g;
-          temp_leds[i / 4 * 3 + j * 3 + 2] = b;
+          temp_leds[data_index] = r;
+          temp_leds[data_index + 1] = g;
+          temp_leds[data_index + 2] = b;
+          data_index += 3;
         }
       }
-      return;
     }
   }
 
