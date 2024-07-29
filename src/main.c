@@ -21,6 +21,16 @@
 // I2C mutex
 mutex_t i2c_mutex;
 
+uint64_t last_interaction =
+    0; // the board_millis() value of the last
+       // interaction with the keyboard. Used to trigger screensaver.
+
+// The time in ms that the keyboard will wait before being detected as idle.
+uint64_t idle_timeout = 10000; // 10s
+
+uint16_t cps = 0; // cps = characters per second
+uint16_t wpm = 0; // wpm = words per minute ( assuming 5 characters per word )
+
 // neopixel helpers
 #define NUM_PIXELS 90
 #define WS2812_PIN 26
@@ -117,11 +127,9 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
                                 uint16_t len) {
   if (report[0] == REPORT_ID_KEYBOARD) {
     // Keyboard report is done. Now, send the media key report.
-    //    if (active_media_code) { // If there is a media key to send,
     tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &active_media_code,
                    2); // Send the report.
     return;
-    //    }
   }
 
   (void)instance;
@@ -382,6 +390,12 @@ void debounce(uint8_t column) {
   if (r5 == r5_prev) {
     check_key(keys[4][column], r5, &layers, &default_layer);
   }
+
+  // If any key is pressed, update the last_interaction time.
+  if ((r1 || r2 || r3 || r4 || r5) && (r1 == r1_prev) && (r2 == r2_prev) &&
+      (r3 == r3_prev) && (r4 == r4_prev) && (r5 == r5_prev)) {
+    last_interaction = board_millis();
+  }
 }
 
 // check_keys loops through all columns and runs a check on each key.
@@ -475,6 +489,9 @@ void rotary_task(void) {
   rotary_value = -(quadrature_encoder_get_count(rot_pio, rot_sm) / 2);
   rotary_delta = rotary_value - rotary_last_value;
   rotary_last_value = rotary_value;
+  if (rotary_delta != 0) {
+    last_interaction = board_millis();
+  }
 }
 
 // I2C Display
@@ -483,8 +500,8 @@ ssd1306_t display;
 char screensaver_text[14] = {'S', 'L', 'A', 'B', ' ', 'K', 'E',
                              'Y', 'B', 'O', 'A', 'R', 'D', ' '};
 
-void display_screensaver(int frame) {
-  // write 'SLAB' waving across the screen
+void draw_screensaver(int frame) {
+  // write 'SLAB KEYBOARD' waving across the screen
   for (uint8_t x = 0; x < 14; x++) {
     int y = 2 * sin(-frame / 10.0 + x * 2) + 8;
     if (y < 0) {
@@ -505,13 +522,9 @@ void display_screensaver(int frame) {
   }
 }
 
-void display_task(void) {
-  ssd1306_clear(&display);
-
-  // Draw the main screen.
-
+void draw_homescreen(int frame) {
   // Layer number display
-  /*ssd1306_draw_empty_square(&display, 0, 20, 15, 10);*/
+  ssd1306_draw_empty_square(&display, 0, 20, 15, 10);
   char layer_number[2];
   for (int i = 15; i >= default_layer; i++) { // 15-0
     uint8_t layer_value = 16 - i;             // 0-15
@@ -526,9 +539,26 @@ void display_task(void) {
     }
     break;
   }
-  /*ssd1306_draw_string(&display, 2, 22, 1, layer_number);*/
+  ssd1306_draw_string(&display, 2, 22, 1, layer_number);
+  // WPM display
+  wpm = cps * 60 / 5;
+  char wpm_str[4];
+  sprintf(wpm_str, "%d", wpm);
+  ssd1306_draw_string(&display, 0, 0, 1, wpm_str);
+  // CPS display
+  char cps_str[4];
+  sprintf(cps_str, "%d", cps);
+  ssd1306_draw_string(&display, 0, 10, 1, cps_str);
+}
 
-  display_screensaver(board_millis() / 10);
+void display_task(void) {
+  ssd1306_clear(&display);
+
+  if (board_millis() - last_interaction > idle_timeout) {
+    draw_screensaver(board_millis() / 10);
+  } else {
+    draw_homescreen(board_millis() / 10);
+  }
 
   // Update the display.
   mutex_enter_blocking(&i2c_mutex);
