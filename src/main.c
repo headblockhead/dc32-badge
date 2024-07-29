@@ -12,6 +12,7 @@
 #include "tusb.h"
 #include "usb_descriptors.h"
 #include "ws2812.pio.h"
+#include <math.h>
 #include <squirrel.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -479,13 +480,38 @@ void rotary_task(void) {
 // I2C Display
 ssd1306_t display;
 
+char screensaver_text[14] = {'S', 'L', 'A', 'B', ' ', 'K', 'E',
+                             'Y', 'B', 'O', 'A', 'R', 'D', ' '};
+
+void display_screensaver(int frame) {
+  // write 'SLAB' waving across the screen
+  for (uint8_t x = 0; x < 14; x++) {
+    int y = 2 * sin(-frame / 10.0 + x * 2) + 8;
+    if (y < 0) {
+      y = 0;
+    }
+    if (y > 32) {
+      y = 32;
+    }
+    int letter_x = x * 22 + (-frame % 384) + (22 * 3);
+    if (letter_x < 0) {
+      letter_x += 384;
+    }
+    if (letter_x > 384) {
+      letter_x -= 384;
+    }
+    ssd1306_draw_char(&display, letter_x, y, 3, screensaver_text[x]);
+    ssd1306_draw_char(&display, letter_x - 384, y, 3, screensaver_text[x]);
+  }
+}
+
 void display_task(void) {
   ssd1306_clear(&display);
 
   // Draw the main screen.
 
   // Layer number display
-  ssd1306_draw_empty_square(&display, 0, 20, 15, 10);
+  /*ssd1306_draw_empty_square(&display, 0, 20, 15, 10);*/
   char layer_number[2];
   for (int i = 15; i >= default_layer; i++) { // 15-0
     uint8_t layer_value = 16 - i;             // 0-15
@@ -500,7 +526,9 @@ void display_task(void) {
     }
     break;
   }
-  ssd1306_draw_string(&display, 2, 22, 1, layer_number);
+  /*ssd1306_draw_string(&display, 2, 22, 1, layer_number);*/
+
+  display_screensaver(board_millis() / 10);
 
   // Update the display.
   mutex_enter_blocking(&i2c_mutex);
