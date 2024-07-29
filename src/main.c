@@ -25,8 +25,9 @@ uint64_t last_interaction =
     0; // the board_millis() value of the last
        // interaction with the keyboard. Used to trigger screensaver.
 
-// The time in ms that the keyboard will wait before being detected as idle.
-uint64_t idle_timeout = 10000; // 10s
+// The time in ms that the keyboard will wait before being detected as idle. Set
+// to UINT64_MAX to (effictivly) disable. (585 million years).
+uint64_t idle_timeout = UINT64_MAX;
 
 uint16_t cps = 0; // cps = characters per second
 uint16_t wpm = 0; // wpm = words per minute ( assuming 5 characters per word )
@@ -375,26 +376,36 @@ void debounce(uint8_t column) {
   r5 = gpio_get(27);
 
   // If the key is still in the same state after 20ms, run check_key.
+  // Also, if any key is pressed, update the last_interaction time.
   if (r1 == r1_prev) {
     check_key(keys[0][column], r1, &layers, &default_layer);
+    if (r1) {
+      last_interaction = board_millis();
+    }
   }
   if (r2 == r2_prev) {
     check_key(keys[1][column], r2, &layers, &default_layer);
+    if (r2) {
+      last_interaction = board_millis();
+    }
   }
   if (r3 == r3_prev) {
     check_key(keys[2][column], r3, &layers, &default_layer);
+    if (r3) {
+      last_interaction = board_millis();
+    }
   }
   if (r4 == r4_prev) {
     check_key(keys[3][column], r4, &layers, &default_layer);
+    if (r4) {
+      last_interaction = board_millis();
+    }
   }
   if (r5 == r5_prev) {
     check_key(keys[4][column], r5, &layers, &default_layer);
-  }
-
-  // If any key is pressed, update the last_interaction time.
-  if ((r1 || r2 || r3 || r4 || r5) && (r1 == r1_prev) && (r2 == r2_prev) &&
-      (r3 == r3_prev) && (r4 == r4_prev) && (r5 == r5_prev)) {
-    last_interaction = board_millis();
+    if (r5) {
+      last_interaction = board_millis();
+    }
   }
 }
 
