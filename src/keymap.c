@@ -21,6 +21,11 @@ void make_keys(void) {
     }
   }
 
+  make_layer_0();
+  make_layer_1();
+};
+
+void make_layer_0(void) {
   // Row 1
   key_add_KC(keys[0][0], 0, HID_KEY_ESCAPE);
   key_add_KC(keys[0][1], 0, HID_KEY_1);
@@ -93,9 +98,9 @@ void make_keys(void) {
   key_add_mod(keys[4][0], 0, KEYBOARD_MODIFIER_LEFTCTRL);
   key_add_KC(keys[4][1], 0, HID_KEY_GUI_LEFT);
   key_add_mod(keys[4][2], 0, KEYBOARD_MODIFIER_LEFTALT);
-  key_add_KC(keys[4][3], 0, HID_KEY_0); // TODO: layer modifiers
-  key_add_KC(keys[4][4], 0, HID_KEY_1);
-  key_add_KC(keys[4][5], 0, HID_KEY_2);
+  key_add_momentary(keys[4][3], 0, 1); // FN_1
+  key_add_momentary(keys[4][4], 0, 2); // FN_2
+  key_add_momentary(keys[4][5], 0, 3); // FN_3
   key_add_KC(keys[4][6], 0, HID_KEY_SPACE);
   key_add_media(keys[4][7], 0, HID_USAGE_CONSUMER_VOLUME_DECREMENT);
   key_add_media(keys[4][8], 0, HID_USAGE_CONSUMER_PLAY_PAUSE);
@@ -105,4 +110,27 @@ void make_keys(void) {
   key_add_KC(keys[4][12], 0, HID_KEY_ARROW_LEFT);
   key_add_KC(keys[4][13], 0, HID_KEY_ARROW_DOWN);
   key_add_KC(keys[4][14], 0, HID_KEY_ARROW_RIGHT);
-};
+}
+
+void make_layer_1(void) {
+  for (uint8_t y = 0; y < 5; y++) {
+    for (uint8_t x = 0; x < 15; x++) {
+      // Fill the array with pass-through keys.
+      key_add_pass_through(keys[y][x], 1);
+    }
+  }
+  // Row 1
+  key_add_KC(keys[0][0], 0, HID_KEY_GRAVE);
+  key_add_KC(keys[0][1], 0, HID_KEY_F1);
+  key_add_KC(keys[0][2], 0, HID_KEY_F2);
+  key_add_KC(keys[0][3], 0, HID_KEY_F3);
+  key_add_KC(keys[0][4], 0, HID_KEY_F4);
+  key_add_KC(keys[0][5], 0, HID_KEY_F5);
+  key_add_KC(keys[0][6], 0, HID_KEY_F6);
+  key_add_KC(keys[0][7], 0, HID_KEY_F7);
+  key_add_KC(keys[0][8], 0, HID_KEY_F8);
+  key_add_KC(keys[0][9], 0, HID_KEY_F9);
+  key_add_KC(keys[0][10], 0, HID_KEY_F10);
+  key_add_KC(keys[0][11], 0, HID_KEY_F11);
+  key_add_KC(keys[0][12], 0, HID_KEY_F12);
+}

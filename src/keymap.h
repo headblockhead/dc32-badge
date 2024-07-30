@@ -11,5 +11,9 @@ extern struct key key_array[5][15]; // An array of keys on the keyboard.
 // make_keys creates a 15x5 array of key structs (key_array) + makes an array
 // of pointers to those structs (keys).
 void make_keys(void);
+void make_layer_0(void);
+void make_layer_1(void);
+void make_layer_2(void);
+void make_layer_3(void);
 
 #endif
