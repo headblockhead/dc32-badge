@@ -120,17 +120,17 @@ void make_layer_1(void) {
     }
   }
   // Row 1
-  key_add_KC(keys[0][0], 0, HID_KEY_GRAVE);
-  key_add_KC(keys[0][1], 0, HID_KEY_F1);
-  key_add_KC(keys[0][2], 0, HID_KEY_F2);
-  key_add_KC(keys[0][3], 0, HID_KEY_F3);
-  key_add_KC(keys[0][4], 0, HID_KEY_F4);
-  key_add_KC(keys[0][5], 0, HID_KEY_F5);
-  key_add_KC(keys[0][6], 0, HID_KEY_F6);
-  key_add_KC(keys[0][7], 0, HID_KEY_F7);
-  key_add_KC(keys[0][8], 0, HID_KEY_F8);
-  key_add_KC(keys[0][9], 0, HID_KEY_F9);
-  key_add_KC(keys[0][10], 0, HID_KEY_F10);
-  key_add_KC(keys[0][11], 0, HID_KEY_F11);
-  key_add_KC(keys[0][12], 0, HID_KEY_F12);
+  key_add_KC(keys[0][0], 1, HID_KEY_GRAVE);
+  key_add_KC(keys[0][1], 1, HID_KEY_F1);
+  key_add_KC(keys[0][2], 1, HID_KEY_F2);
+  key_add_KC(keys[0][3], 1, HID_KEY_F3);
+  key_add_KC(keys[0][4], 1, HID_KEY_F4);
+  key_add_KC(keys[0][5], 1, HID_KEY_F5);
+  key_add_KC(keys[0][6], 1, HID_KEY_F6);
+  key_add_KC(keys[0][7], 1, HID_KEY_F7);
+  key_add_KC(keys[0][8], 1, HID_KEY_F8);
+  key_add_KC(keys[0][9], 1, HID_KEY_F9);
+  key_add_KC(keys[0][10], 1, HID_KEY_F10);
+  key_add_KC(keys[0][11], 1, HID_KEY_F11);
+  key_add_KC(keys[0][12], 1, HID_KEY_F12);
 }

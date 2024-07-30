@@ -312,23 +312,6 @@ void check_keys() {
   };
 }
 
-void debugging_init(void) {
-  uart_init(uart0, 115200); // UART debugging
-
-  // Configure the board's LED pins as an output for debugging.
-  gpio_init(16);
-  gpio_set_dir(16, GPIO_OUT);
-  gpio_put(16, 1);
-
-  gpio_init(17);
-  gpio_set_dir(17, GPIO_OUT);
-  gpio_put(17, 1);
-
-  gpio_init(25);
-  gpio_set_dir(25, GPIO_OUT);
-  gpio_put(25, 1);
-}
-
 void row_setup(void) {
   // Configure the row pins as inputs with pull-down resistors.
   gpio_init(1);
@@ -426,14 +409,12 @@ void draw_homescreen(int frame) {
   // Layer number display
   ssd1306_draw_empty_square(&display, 0, 20, 15, 10);
   char layer_number[2];
-  for (int i = 15; i >= default_layer; i++) { // 15-0
-    uint8_t layer_value = 16 - i;             // 0-15
+  for (int i = 15; i >= default_layer; i--) { // 15-0
     if (!layers[i]) {
       continue;
     }
-    sprintf(layer_number, "%d", layer_value);
-    if (layer_value <
-        10) { // If the number is less than 10, add a 0 to the start
+    sprintf(layer_number, "%d", i);
+    if (i < 10) { // If the number is less than 10, add a 0 to the start
       layer_number[1] = layer_number[0];
       layer_number[0] = '0';
     }
@@ -504,8 +485,6 @@ void core0_main() {
 
 // The main function, runs tinyusb and the key scanning loop.
 int main(void) {
-  //  debugging_init(); // Initialize debugging utilities
-
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
   tusb_init();                // Initialize tinyusb
