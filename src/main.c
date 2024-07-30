@@ -168,20 +168,18 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
       memcpy(leds, temp_leds, NUM_PIXELS * 3);
       return;
     }
-    if (report_id == 0b00000001) {
-      // Run length decode.
-      uint8_t data_index = 0;
-      for (uint8_t i = 0; i < bufsize; i += 4) {
-        uint8_t length = buffer[i];
-        uint8_t r = buffer[i + 1];
-        uint8_t g = buffer[i + 2];
-        uint8_t b = buffer[i + 3];
-        for (uint8_t j = 0; j < length; j++) {
-          temp_leds[data_index] = r;
-          temp_leds[data_index + 1] = g;
-          temp_leds[data_index + 2] = b;
-          data_index += 3;
-        }
+    // Run length decode.
+    uint16_t data_index = 15 * 3 * report_id;
+    for (uint8_t i = 0; i < 60; i += 4) {
+      uint8_t length = buffer[i];
+      uint8_t r = buffer[i + 1];
+      uint8_t g = buffer[i + 2];
+      uint8_t b = buffer[i + 3];
+      for (uint8_t j = 0; j < length; j++) {
+        temp_leds[data_index] = r;
+        temp_leds[data_index + 1] = g;
+        temp_leds[data_index + 2] = b;
+        data_index += 3;
       }
     }
   }
