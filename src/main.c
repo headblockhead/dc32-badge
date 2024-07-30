@@ -154,6 +154,8 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
 }
 uint8_t temp_leds[NUM_PIXELS * 3] = {0};
 
+uint16_t data_index = 0;
+
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
@@ -162,16 +164,18 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
   // report_id was the first byte of the buffer, report_id was removed from the
   // buffer before this function was called.
 
-  // Check if the report is for the LED strip.
-  if (bufsize == 63) {
-    if (report_id == 0b00000000) {
-      memcpy(leds, temp_leds, NUM_PIXELS * 3);
-      return;
-    }
+  if (report_id == 0b00000000) {
+    memcpy(leds, temp_leds, NUM_PIXELS * 3);
+    data_index = 0;
+    return;
+  }
+  if (bufsize == 60) {
     // Run length decode.
-    uint16_t data_index = 15 * 3 * report_id;
     for (uint8_t i = 0; i < 60; i += 4) {
       uint8_t length = buffer[i];
+      if (length == 0) {
+        break;
+      }
       uint8_t r = buffer[i + 1];
       uint8_t g = buffer[i + 2];
       uint8_t b = buffer[i + 3];
