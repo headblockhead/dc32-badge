@@ -133,6 +133,21 @@ void make_layer_1(void) {
   key_add_KC(keys[0][11], 1, HID_KEY_F11);
   key_add_KC(keys[0][12], 1, HID_KEY_F12);
 
+  key_add_media(keys[1][1], 1, HID_USAGE_CONSUMER_SLEEP);
+  key_add_media(keys[1][2], 1, HID_USAGE_CONSUMER_POWER);
+  key_add_media(keys[1][3], 1, HID_USAGE_CONSUMER_BRIGHTNESS_DECREMENT);
+  key_add_media(keys[1][4], 1, HID_USAGE_CONSUMER_BRIGHTNESS_INCREMENT);
+  key_add_media(keys[1][5], 1, HID_USAGE_CONSUMER_AL_LOCAL_BROWSER);
+  key_add_media(keys[1][6], 1, HID_USAGE_CONSUMER_AL_CALCULATOR);
+  key_add_media(keys[1][7], 1, HID_USAGE_CONSUMER_AL_EMAIL_READER);
+  key_add_media(keys[1][8], 1, HID_USAGE_CONSUMER_BASS_DECREMENT);
+  key_add_media(keys[1][9], 1, HID_USAGE_CONSUMER_BASS_INCREMENT);
+  key_add_media(keys[1][10], 1, HID_USAGE_CONSUMER_TREBLE_DECREMENT);
+  key_add_media(keys[1][11], 1, HID_USAGE_CONSUMER_TREBLE_INCREMENT);
+  key_add_media(keys[1][12], 1, HID_USAGE_CONSUMER_BASS_BOOST);
+  key_add_media(keys[1][13], 1, HID_USAGE_CONSUMER_AC_BACK);
+  key_add_media(keys[1][14], 1, HID_USAGE_CONSUMER_AC_FORWARD);
+
   // Row 4
   // TODO: Mouse keys
 
@@ -141,4 +156,28 @@ void make_layer_1(void) {
   key_add_media(keys[4][8], 1, HID_USAGE_CONSUMER_MUTE);
   key_add_media(keys[4][9], 1, HID_USAGE_CONSUMER_SCAN_NEXT);
   // TODO: Mouse keys
+}
+
+void make_layer_2(void) {
+  for (uint8_t y = 0; y < 5; y++) {
+    for (uint8_t x = 0; x < 15; x++) {
+      // Fill the array with pass-through keys.
+      key_add_pass_through(keys[y][x], 2);
+    }
+  }
+  // Row 1
+  key_add_media(keys[0][1], 2, HID_USAGE_CONSUMER_SLEEP);
+  key_add_media(keys[0][2], 2, HID_USAGE_CONSUMER_POWER);
+  key_add_media(keys[0][3], 2, HID_USAGE_CONSUMER_BRIGHTNESS_DECREMENT);
+  key_add_media(keys[0][4], 2, HID_USAGE_CONSUMER_BRIGHTNESS_INCREMENT);
+  key_add_media(keys[0][5], 2, HID_USAGE_CONSUMER_AL_LOCAL_BROWSER);
+  key_add_media(keys[0][6], 2, HID_USAGE_CONSUMER_AL_CALCULATOR);
+  key_add_media(keys[0][7], 2, HID_USAGE_CONSUMER_AL_EMAIL_READER);
+  key_add_media(keys[0][8], 2, HID_USAGE_CONSUMER_BASS_DECREMENT);
+  key_add_media(keys[0][9], 2, HID_USAGE_CONSUMER_BASS_INCREMENT);
+  key_add_media(keys[0][10], 2, HID_USAGE_CONSUMER_TREBLE_DECREMENT);
+  key_add_media(keys[0][11], 2, HID_USAGE_CONSUMER_TREBLE_INCREMENT);
+  key_add_media(keys[0][12], 2, HID_USAGE_CONSUMER_BASS_BOOST);
+  key_add_media(keys[0][13], 2, HID_USAGE_CONSUMER_AC_BACK);
+  key_add_media(keys[0][14], 2, HID_USAGE_CONSUMER_AC_FORWARD);
 }
