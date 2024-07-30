@@ -42,6 +42,7 @@ add_executable(slab
 # Add USB configuration files
 target_sources(slab PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/src/usb_descriptors.c
+        ${CMAKE_CURRENT_LIST_DIR}/src/keymap.c
         )
 
 target_include_directories(slab PUBLIC
