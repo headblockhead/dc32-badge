@@ -40,7 +40,8 @@ void make_layer_0(void) {
   key_add_KC(keys[0][10], 0, HID_KEY_0);
   key_add_KC(keys[0][11], 0, HID_KEY_MINUS);
   key_add_KC(keys[0][12], 0, HID_KEY_EQUAL);
-  key_add_KC(keys[0][13], 0, HID_KEY_MENU);
+  key_add_custom_code(keys[0][13],
+                      0); // when held, enter a code in binary then press enter.
   key_add_KC(keys[0][14], 0, HID_KEY_CAPS_LOCK);
 
   // Row 2
