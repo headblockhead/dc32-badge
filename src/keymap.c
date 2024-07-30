@@ -89,7 +89,7 @@ void make_layer_0(void) {
   key_add_KC(keys[3][8], 0, HID_KEY_COMMA);
   key_add_KC(keys[3][9], 0, HID_KEY_PERIOD);
   key_add_KC(keys[3][10], 0, HID_KEY_SLASH);
-  key_add_KC(keys[3][11], 0, 0x00); // TODO: Compose
+  key_add_mod(keys[3][11], 0, KEYBOARD_MODIFIER_RIGHTALT);
   key_add_KC(keys[3][12], 0, HID_KEY_PAGE_UP);
   key_add_KC(keys[3][13], 0, HID_KEY_ARROW_UP);
   key_add_KC(keys[3][14], 0, HID_KEY_PAGE_DOWN);
@@ -120,7 +120,6 @@ void make_layer_1(void) {
     }
   }
   // Row 1
-  key_add_KC(keys[0][0], 1, HID_KEY_GRAVE);
   key_add_KC(keys[0][1], 1, HID_KEY_F1);
   key_add_KC(keys[0][2], 1, HID_KEY_F2);
   key_add_KC(keys[0][3], 1, HID_KEY_F3);
@@ -133,4 +132,13 @@ void make_layer_1(void) {
   key_add_KC(keys[0][10], 1, HID_KEY_F10);
   key_add_KC(keys[0][11], 1, HID_KEY_F11);
   key_add_KC(keys[0][12], 1, HID_KEY_F12);
+
+  // Row 4
+  // TODO: Mouse keys
+
+  // Row 5
+  key_add_media(keys[4][7], 1, HID_USAGE_CONSUMER_SCAN_PREVIOUS);
+  key_add_media(keys[4][8], 1, HID_USAGE_CONSUMER_MUTE);
+  key_add_media(keys[4][9], 1, HID_USAGE_CONSUMER_SCAN_NEXT);
+  // TODO: Mouse keys
 }
