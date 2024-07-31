@@ -62,7 +62,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/external/pico_pca9555) # Add PCA9555 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/external/pico-ssd1306) # Include SSD1306 headers in target and dependencies.
 
 # Pull in common dependencies
-target_link_libraries(slab pico_stdlib pico_unique_id tinyusb_device tinyusb_board pico_multicore hardware_gpio hardware_i2c squirrel pico_pca9555 hardware_pio pico_flash hardware_exception)
+target_link_libraries(slab pico_stdlib pico_unique_id tinyusb_device tinyusb_board pico_multicore hardware_gpio hardware_i2c squirrel pico_pca9555 hardware_pio pico_flash hardware_exception hardware_flash)
 
 # Enable UART output
 pico_enable_stdio_uart(slab 1)

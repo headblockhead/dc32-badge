@@ -1,4 +1,5 @@
 #include "bsp/board.h"
+#include "hardware/flash.h"
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
@@ -158,11 +159,21 @@ uint8_t temp_leds[NUM_PIXELS * 3] = {0};
 uint8_t led_mode = 0;
 uint16_t led_data_index = 0;
 
+#define FLASH_TARGET_OFFSET (256 * 1024)
+const uint8_t *flash_target = (const uint8_t *)(XIP_BASE + FLASH_TARGET_OFFSET);
+
 // flash_led_state saves the current LED state to flash so it can be read on
 // boot.
-void flash_led_state(void) {}
+void flash_led_state(void *var) {
+  flash_range_erase(FLASH_TARGET_OFFSET,
+                    512); // Erase 512 bytes of flash memory starting at 0.
+  flash_range_program(
+      FLASH_TARGET_OFFSET, leds,
+      NUM_PIXELS * 3); // Write the current LED state to flash. - 270 bytes
+  // 242 bytes left
+}
 
-void load_led_state(void) {}
+void load_led_state(void *var) { memcpy(leds, flash_target, NUM_PIXELS * 3); }
 
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
@@ -179,7 +190,7 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
       return;
     }
     if (report_id == 0b00000001) { // Save the current LED state to flash
-      flash_safe_execute(flash_led_state, NULL, 5);
+      flash_safe_execute(&flash_led_state, NULL, 5);
       return;
     }
     if (report_id == 0b00000010) { // Save the current mode state to flash
@@ -499,8 +510,8 @@ void i2c_devices_init(void) {
 
 // Core 1 deals with the LED strip, rotary encoder and OLED display.
 void core1_main() {
+  flash_safe_execute_core_init();
   while (true) {
-    flash_safe_execute_core_init();
     led_task();
     rotary_task();
     display_task();
@@ -527,6 +538,9 @@ int main(void) {
   led_init();         // Initialize the WS2812 LED strip
   rotary_init();      // Initialize the rotary encoder
   i2c_devices_init(); // Initialize the I2C devices
+
+  // Load the LED state from flash.
+  load_led_state(NULL);
 
   // Core 1 loop
   multicore_launch_core1(core1_main);
