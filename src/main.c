@@ -295,8 +295,8 @@ void debounce(uint8_t column) {
   bool r4_prev = r4;
   bool r5_prev = r5;
 
-  // Wait for 20us
-  sleep_us(20);
+  // Wait for 200us
+  sleep_us(200);
 
   // Get the state of all keys in the column again.
   r1 = gpio_get(1);
@@ -464,15 +464,13 @@ void draw_homescreen(int frame) {
   } else {
     ssd1306_draw_string(&display, 8, 6, 3, layer_number);
   };
-  // WPM display
-  wpm = cps * 60 / 5;
-  char wpm_str[4];
-  sprintf(wpm_str, "%d", wpm);
-  /*ssd1306_draw_string(&display, 0, 0, 1, wpm_str);*/
-  // CPS display
-  char cps_str[4];
-  sprintf(cps_str, "%d", cps);
-  /*ssd1306_draw_string(&display, 0, 10, 1, cps_str);*/
+  // Custom Code display
+  char binary_str[4];
+  // Convert the 16 bit number into a hex string
+  for (int i = 0; i < 16; i++) {
+    sprintf(binary_str, "0x%x", custom_code_buffer);
+  }
+  ssd1306_draw_string(&display, 32, 0, 1, binary_str);
 }
 
 void display_task(void) {
