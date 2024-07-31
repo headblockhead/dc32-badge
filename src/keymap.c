@@ -284,7 +284,7 @@ void make_qwerty_layer(uint8_t layer) {
   key_add_mod(keys[4][2], layer, KEYBOARD_MODIFIER_LEFTALT);
   key_add_momentary(keys[4][3], layer, 9);  // FN_1
   key_add_momentary(keys[4][4], layer, 10); // FN_2
-  key_add_momentary(keys[4][5], layer, 3);  //
+  key_add_momentary(keys[4][5], layer, 8);  //
   key_add_keycode(keys[4][6], layer, HID_KEY_SPACE);
   key_add_media(keys[4][7], layer, HID_USAGE_CONSUMER_VOLUME_DECREMENT);
   key_add_media(keys[4][8], layer, HID_USAGE_CONSUMER_PLAY_PAUSE);
