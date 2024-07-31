@@ -356,7 +356,7 @@ void led_task(void) {
   for (int i = 0; i < 90; i++) {
     put_pixel(urgb_u32(leds[i * 3], leds[i * 3 + 1], leds[i * 3 + 2]));
   }
-  sleep_ms(1);
+  sleep_us(50);
 }
 
 // Rotary Encoder
@@ -412,29 +412,31 @@ void draw_screensaver(int frame) {
 
 void draw_homescreen(int frame) {
   // Layer number display
-  ssd1306_draw_empty_square(&display, 0, 20, 15, 10);
+  ssd1306_draw_empty_square(&display, 2, 2, 27, 28);
   char layer_number[2];
-  for (int i = 15; i >= default_layer; i--) { // 15-0
-    if (!layers[i]) {
+  uint8_t current_layer = 0;
+  for (current_layer = 15; current_layer >= default_layer;
+       current_layer--) { // 15-0
+    if (!layers[current_layer]) {
       continue;
     }
-    sprintf(layer_number, "%d", i);
-    if (i < 10) { // If the number is less than 10, add a 0 to the start
-      layer_number[1] = layer_number[0];
-      layer_number[0] = '0';
-    }
+    sprintf(layer_number, "%d", current_layer);
     break;
   }
-  ssd1306_draw_string(&display, 2, 22, 1, layer_number);
+  if (current_layer >= 10) {
+    ssd1306_draw_string(&display, 4, 10, 2, layer_number);
+  } else {
+    ssd1306_draw_string(&display, 8, 6, 3, layer_number);
+  };
   // WPM display
   wpm = cps * 60 / 5;
   char wpm_str[4];
   sprintf(wpm_str, "%d", wpm);
-  ssd1306_draw_string(&display, 0, 0, 1, wpm_str);
+  /*ssd1306_draw_string(&display, 0, 0, 1, wpm_str);*/
   // CPS display
   char cps_str[4];
   sprintf(cps_str, "%d", cps);
-  ssd1306_draw_string(&display, 0, 10, 1, cps_str);
+  /*ssd1306_draw_string(&display, 0, 10, 1, cps_str);*/
 }
 
 void display_task(void) {
