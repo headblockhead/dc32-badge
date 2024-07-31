@@ -27,7 +27,7 @@ uint64_t last_interaction =
 
 // The time in ms that the keyboard will wait before being detected as idle. Set
 // to UINT64_MAX to (effictivly) disable. (585 million years).
-uint64_t idle_timeout = UINT64_MAX;
+uint64_t idle_timeout = 30000;
 
 uint16_t cps = 0; // cps = characters per second
 uint16_t wpm = 0; // wpm = words per minute ( assuming 5 characters per word )
@@ -237,6 +237,11 @@ const uint16_t outputs_lookup[16] = {
     0b1000000000000000, // unused - not connected
 };
 
+void any_keypress(void) {
+  last_interaction = board_millis();
+  tud_remote_wakeup();
+}
+
 // debounce checks keys twice over 200us and if the key is still in the same
 // position, it counts is as confirmed and runs check_key. This prevents
 // chatter. (false key activations)
@@ -267,33 +272,33 @@ void debounce(uint8_t column) {
   // If the key is still in the same state after 20ms, run check_key.
   // Also, if any key is pressed, update the last_interaction time.
   if (r1 == r1_prev) {
-    check_key(keys[0][column], r1, &layers, &default_layer);
+    check_key(keys[0][column], r1);
     if (r1) {
-      last_interaction = board_millis();
+      any_keypress();
     }
   }
   if (r2 == r2_prev) {
-    check_key(keys[1][column], r2, &layers, &default_layer);
+    check_key(keys[1][column], r2);
     if (r2) {
-      last_interaction = board_millis();
+      any_keypress();
     }
   }
   if (r3 == r3_prev) {
-    check_key(keys[2][column], r3, &layers, &default_layer);
+    check_key(keys[2][column], r3);
     if (r3) {
-      last_interaction = board_millis();
+      any_keypress();
     }
   }
   if (r4 == r4_prev) {
-    check_key(keys[3][column], r4, &layers, &default_layer);
+    check_key(keys[3][column], r4);
     if (r4) {
-      last_interaction = board_millis();
+      any_keypress();
     }
   }
   if (r5 == r5_prev) {
-    check_key(keys[4][column], r5, &layers, &default_layer);
+    check_key(keys[4][column], r5);
     if (r5) {
-      last_interaction = board_millis();
+      any_keypress();
     }
   }
 }

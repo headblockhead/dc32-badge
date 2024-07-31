@@ -23,6 +23,8 @@ void make_keys(void) {
 
   make_layer_0();
   make_layer_1();
+  make_layer_2();
+  /*make_layer_3();*/
 };
 
 void make_layer_0(void) {
