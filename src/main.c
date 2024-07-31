@@ -260,7 +260,7 @@ void debounce(uint8_t column) {
   bool r5_prev = r5;
 
   // Wait for 10us
-  sleep_us(10);
+  sleep_us(20);
 
   // Get the state of all keys in the column again.
   r1 = gpio_get(1);
