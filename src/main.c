@@ -3,6 +3,7 @@
 #include "hardware/i2c.h"
 #include "hardware/pio.h"
 #include "keymap.h"
+#include "pico/flash.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
@@ -152,9 +153,16 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
   (void)reqlen;
   return 0;
 }
-uint8_t temp_leds[NUM_PIXELS * 3] = {0};
 
-uint16_t data_index = 0;
+uint8_t temp_leds[NUM_PIXELS * 3] = {0};
+uint8_t led_mode = 0;
+uint16_t led_data_index = 0;
+
+// flash_led_state saves the current LED state to flash so it can be read on
+// boot.
+void flash_led_state(void) {}
+
+void load_led_state(void) {}
 
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
@@ -164,10 +172,24 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
   // report_id was the first byte of the buffer, report_id was removed from the
   // buffer before this function was called.
 
-  if (report_id == 0b00000000) {
-    memcpy(leds, temp_leds, NUM_PIXELS * 3);
-    data_index = 0;
-    return;
+  if (bufsize == 1) {
+    if (report_id == 0b00000000) { // Update LED strip with data
+      memcpy(leds, temp_leds, NUM_PIXELS * 3);
+      led_data_index = 0;
+      return;
+    }
+    if (report_id == 0b00000001) { // Save the current LED state to flash
+      flash_safe_execute(flash_led_state, NULL, 5);
+      return;
+    }
+    if (report_id == 0b00000010) { // Save the current mode state to flash
+
+      return;
+    }
+    if (report_id == 0b00000011) { // Update the current mode state
+      led_mode = buffer[0];
+      return;
+    }
   }
   if (bufsize == 60) {
     // Run length decode.
@@ -180,10 +202,10 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
       uint8_t g = buffer[i + 2];
       uint8_t b = buffer[i + 3];
       for (uint8_t j = 0; j < length; j++) {
-        temp_leds[data_index] = r;
-        temp_leds[data_index + 1] = g;
-        temp_leds[data_index + 2] = b;
-        data_index += 3;
+        temp_leds[led_data_index] = r;
+        temp_leds[led_data_index + 1] = g;
+        temp_leds[led_data_index + 2] = b;
+        led_data_index += 3;
       }
     }
   }
@@ -237,9 +259,12 @@ const uint16_t outputs_lookup[16] = {
     0b1000000000000000, // unused - not connected
 };
 
-void any_keypress(void) {
+// interaction is called when any interaction with the keyboard is detected.
+void interaction(void) {
   last_interaction = board_millis();
-  tud_remote_wakeup();
+  if (tud_suspended()) {
+    tud_remote_wakeup();
+  }
 }
 
 // debounce checks keys twice over 200us and if the key is still in the same
@@ -259,7 +284,7 @@ void debounce(uint8_t column) {
   bool r4_prev = r4;
   bool r5_prev = r5;
 
-  // Wait for 10us
+  // Wait for 20us
   sleep_us(20);
 
   // Get the state of all keys in the column again.
@@ -274,31 +299,31 @@ void debounce(uint8_t column) {
   if (r1 == r1_prev) {
     check_key(keys[0][column], r1);
     if (r1) {
-      any_keypress();
+      interaction();
     }
   }
   if (r2 == r2_prev) {
     check_key(keys[1][column], r2);
     if (r2) {
-      any_keypress();
+      interaction();
     }
   }
   if (r3 == r3_prev) {
     check_key(keys[2][column], r3);
     if (r3) {
-      any_keypress();
+      interaction();
     }
   }
   if (r4 == r4_prev) {
     check_key(keys[3][column], r4);
     if (r4) {
-      any_keypress();
+      interaction();
     }
   }
   if (r5 == r5_prev) {
     check_key(keys[4][column], r5);
     if (r5) {
-      any_keypress();
+      interaction();
     }
   }
 }
@@ -378,7 +403,7 @@ void rotary_task(void) {
   rotary_delta = rotary_value - rotary_last_value;
   rotary_last_value = rotary_value;
   if (rotary_delta != 0) {
-    last_interaction = board_millis();
+    interaction();
   }
 }
 
@@ -475,6 +500,7 @@ void i2c_devices_init(void) {
 // Core 1 deals with the LED strip, rotary encoder and OLED display.
 void core1_main() {
   while (true) {
+    flash_safe_execute_core_init();
     led_task();
     rotary_task();
     display_task();
