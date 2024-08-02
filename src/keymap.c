@@ -46,6 +46,8 @@ void make_layers(uint8_t layer) {
   case 10:
     make_fn2_layer(layer);
     break;
+  default:
+    break;
   }
 }
 
@@ -64,8 +66,9 @@ void make_workman_layer(uint8_t layer) {
   key_add_keycode(keys[0][10], layer, HID_KEY_0);
   key_add_keycode(keys[0][11], layer, HID_KEY_MINUS);
   key_add_keycode(keys[0][12], layer, HID_KEY_EQUAL);
-  key_add_custom_code(keys[0][13],
-                      0); // when held, enter a code in binary then press enter.
+  key_add_custom_code(
+      keys[0][13],
+      layer); // when held, enter a code in binary then press enter.
   key_add_keycode(keys[0][14], layer, HID_KEY_CAPS_LOCK);
 
   // Row 2
@@ -141,7 +144,7 @@ void make_fn1_layer(uint8_t layer) {
   for (uint8_t y = 0; y < 5; y++) {
     for (uint8_t x = 0; x < 15; x++) {
       // Fill the array with pass-through keys.
-      key_add_pass_through(keys[y][x], 1);
+      key_add_pass_through(keys[y][x], layer);
     }
   }
 
@@ -188,7 +191,7 @@ void make_fn2_layer(uint8_t layer) {
   for (uint8_t y = 0; y < 5; y++) {
     for (uint8_t x = 0; x < 15; x++) {
       // Fill the array with pass-through keys.
-      key_add_pass_through(keys[y][x], 2);
+      key_add_pass_through(keys[y][x], layer);
     }
   }
   // Row 1
@@ -209,6 +212,13 @@ void make_fn2_layer(uint8_t layer) {
 }
 
 void make_qwerty_layer(uint8_t layer) {
+  for (uint8_t y = 0; y < 5; y++) {
+    for (uint8_t x = 0; x < 15; x++) {
+      // Fill the array with pass-through keys.
+      key_add_pass_through(keys[y][x], layer);
+    }
+  }
+
   // Row 1
   key_add_keycode(keys[0][0], layer, HID_KEY_ESCAPE);
   key_add_keycode(keys[0][1], layer, HID_KEY_1);
@@ -223,8 +233,9 @@ void make_qwerty_layer(uint8_t layer) {
   key_add_keycode(keys[0][10], layer, HID_KEY_0);
   key_add_keycode(keys[0][11], layer, HID_KEY_MINUS);
   key_add_keycode(keys[0][12], layer, HID_KEY_EQUAL);
-  key_add_custom_code(keys[0][13],
-                      0); // when held, enter a code in binary then press enter.
+  key_add_custom_code(
+      keys[0][13],
+      layer); // when held, enter a code in binary then press enter.
   key_add_keycode(keys[0][14], layer, HID_KEY_CAPS_LOCK);
 
   // Row 2
@@ -284,7 +295,7 @@ void make_qwerty_layer(uint8_t layer) {
   key_add_mod(keys[4][2], layer, KEYBOARD_MODIFIER_LEFTALT);
   key_add_momentary(keys[4][3], layer, 9);  // FN_1
   key_add_momentary(keys[4][4], layer, 10); // FN_2
-  key_add_momentary(keys[4][5], layer, 8);  //
+  // key_add_momentary(keys[4][5], layer, 8);  //
   key_add_keycode(keys[4][6], layer, HID_KEY_SPACE);
   key_add_media(keys[4][7], layer, HID_USAGE_CONSUMER_VOLUME_DECREMENT);
   key_add_media(keys[4][8], layer, HID_USAGE_CONSUMER_PLAY_PAUSE);
