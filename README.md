@@ -1,29 +1,41 @@
 # slab-firmware
-Experimental firmware for the slab keyboard. Hardware under development, to be released later.
+Firmware for the open-source slab keyboard. Work-in-progress.
 
 ## Tasks
 
-### Upload-debug
+### Upload-Release
+Directory: ./build
+Requires: build-release
+
+Builds, then copies the firmware with debug optimisations to the RP2040.
+
+```bash
+export PICO_DIR=`findmnt -S LABEL=RPI-RP2 -o TARGET -fn`
+cp ./slab.uf2 $PICO_DIR
+```
+
+### Upload-Debug
 Directory: ./build
 Requires: build-debug
 
-Uploads the firmware to the keyboard with debug outputs.
+Builds, then copies the firmware with speed optimisations to the RP2040.
 
 ```bash
-cp ./slab.uf2 $(findmnt -S LABEL=RPI-RP2 -o TARGET -fn)
+export PICO_DIR=`findmnt -S LABEL=RPI-RP2 -o TARGET -fn`
+cp ./slab.uf2 $PICO_DIR
 ```
 
-### Build
+### Build-Release
 Directory: ./build
 
-Builds the keyboard firmware.
+Builds the keyboard firmware optimized for size.
 
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j4 slab
 ```
 
-### Build-debug
+### Build-Debug
 Directory: ./build
 
 Builds the keyboard firmware with development outputs.
@@ -34,17 +46,28 @@ make -j4 slab
 cp compile_commands.json ../ # Copies the autocomplete information for ccls.
 ```
 
-### Clean
-Cleans the build directory for a fresh build.
+### Clean-Development
+
+Resets development files for a clean build.
 
 ```bash
 rm -rf ./build
 mkdir build
 ```
 
-### Init-submodules
+### Initialize-Development
 
-Fetches submodules for use in the project.
+Fetches submodules and creates the build folder.
+
 ```bash
 git submodule update --init --recursive
+mkdir -p build
+```
+
+### Update-Submodules
+
+Updates the submodules to the latest commit.
+
+```bash
+git submodule update --remote
 ```
