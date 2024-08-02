@@ -3,6 +3,11 @@
 #include "squirrel_constructors.h"
 #include "tusb.h"
 
+#define LAYER_WORKMAN 0
+#define LAYER_QWERTY 1
+#define LAYER_FN1 2
+#define LAYER_FN2 3
+
 struct key *keys[5][15];
 struct key key_array[5][15];
 
@@ -21,35 +26,11 @@ void make_keys(void) {
     }
   }
 
-  for (uint8_t layer = 0; layer < 16; layer++) {
-    make_layers(layer);
-  }
+  make_workman_layer(LAYER_WORKMAN);
+  make_qwerty_layer(LAYER_QWERTY);
+  make_fn1_layer(LAYER_FN1);
+  make_fn2_layer(LAYER_FN2);
 };
-
-void make_layers(uint8_t layer) {
-  switch (layer) {
-  case 0:
-    make_workman_layer(layer);
-    break;
-  case 1:
-    make_fn1_layer(layer);
-    break;
-  case 2:
-    make_fn2_layer(layer);
-    break;
-  case 8:
-    make_qwerty_layer(layer);
-    break;
-  case 9:
-    make_fn1_layer(layer);
-    break;
-  case 10:
-    make_fn2_layer(layer);
-    break;
-  default:
-    break;
-  }
-}
 
 void make_workman_layer(uint8_t layer) {
   // Row 1
@@ -126,9 +107,9 @@ void make_workman_layer(uint8_t layer) {
   key_add_mod(keys[4][0], layer, KEYBOARD_MODIFIER_LEFTCTRL);
   key_add_keycode(keys[4][1], layer, HID_KEY_GUI_LEFT);
   key_add_mod(keys[4][2], layer, KEYBOARD_MODIFIER_LEFTALT);
-  key_add_momentary(keys[4][3], layer, 1); // FN_1
-  key_add_momentary(keys[4][4], layer, 2); // FN_2
-  key_add_momentary(keys[4][5], layer, 8); // QWERTY TODO: set default layer
+  key_add_momentary(keys[4][3], layer, LAYER_FN1);  // FN_1
+  key_add_momentary(keys[4][4], layer, LAYER_FN2);  // FN_2
+  key_add_default(keys[4][5], layer, LAYER_QWERTY); // QWERTY
   key_add_keycode(keys[4][6], layer, HID_KEY_SPACE);
   key_add_media(keys[4][7], layer, HID_USAGE_CONSUMER_VOLUME_DECREMENT);
   key_add_media(keys[4][8], layer, HID_USAGE_CONSUMER_PLAY_PAUSE);
@@ -293,9 +274,9 @@ void make_qwerty_layer(uint8_t layer) {
   key_add_mod(keys[4][0], layer, KEYBOARD_MODIFIER_LEFTCTRL);
   key_add_keycode(keys[4][1], layer, HID_KEY_GUI_LEFT);
   key_add_mod(keys[4][2], layer, KEYBOARD_MODIFIER_LEFTALT);
-  key_add_momentary(keys[4][3], layer, 9);  // FN_1
-  key_add_momentary(keys[4][4], layer, 10); // FN_2
-  // key_add_momentary(keys[4][5], layer, 8);  //
+  key_add_momentary(keys[4][3], layer, LAYER_FN1);   // FN_1
+  key_add_momentary(keys[4][4], layer, LAYER_FN2);   // FN_2
+  key_add_default(keys[4][5], layer, LAYER_WORKMAN); // WORKMAN
   key_add_keycode(keys[4][6], layer, HID_KEY_SPACE);
   key_add_media(keys[4][7], layer, HID_USAGE_CONSUMER_VOLUME_DECREMENT);
   key_add_media(keys[4][8], layer, HID_USAGE_CONSUMER_PLAY_PAUSE);
