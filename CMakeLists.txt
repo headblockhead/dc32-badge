@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.12)
 # note: this must happen before project()
 include(external/pico-sdk/pico_sdk_init.cmake)
 
-project(slab C CXX ASM) # Name of project, can have multiple targets.
+project(dc32_badge C CXX ASM) # Name of project, can have multiple targets.
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -13,9 +13,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
 
-# Require Pico SDK version 1.3.0
-if (PICO_SDK_VERSION_STRING VERSION_LESS "1.3.0")
-    message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.3.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
+# Require Pico SDK version 2.0.0 - uses the rp2350 chip.
+if (PICO_SDK_VERSION_STRING VERSION_LESS "2.0.0")
+    message(FATAL_ERROR "Raspberry Pi Pico SDK version 2.0.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
 endif()
 
 # Initialize the SDK
@@ -33,39 +33,38 @@ else()
 endif()
 
 # Target: Create an executable
-add_executable(slab
+add_executable(dc32_badge
         ${CMAKE_CURRENT_LIST_DIR}/src/main.c
-        # The SSD1306 library is a weird one. It's not a library with a cmake file, so we have to add the source files manually.
-        ${CMAKE_CURRENT_LIST_DIR}/external/pico-ssd1306/ssd1306.c
+        ${CMAKE_CURRENT_LIST_DIR}/src/HSV2RGB.c
         )
 
-# Add USB configuration files
-target_sources(slab PUBLIC
-        ${CMAKE_CURRENT_LIST_DIR}/src/usb_descriptors.c
-        ${CMAKE_CURRENT_LIST_DIR}/src/keymap.c
-        )
-
-target_include_directories(slab PUBLIC
+target_include_directories(dc32_badge PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/src
                 )
 
 # Generate the PIO header files
-pico_generate_pio_header(slab ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
-pico_generate_pio_header(slab ${CMAKE_CURRENT_LIST_DIR}/src/quadrature_encoder.pio)
+pico_generate_pio_header(dc32_badge ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/external/squirrel/include) # Include SQUIRREL headers in target and dependencies.
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/external/squirrel) # Add SQUIRREL as a subdirectory. This will build the library.
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/external/pico_pca9555/include) # Include PCA9555 headers in target and dependencies.
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/external/pico_pca9555) # Add PCA9555 as a subdirectory. This will build the library.
-
-include_directories(${CMAKE_CURRENT_LIST_DIR}/external/pico-ssd1306) # Include SSD1306 headers in target and dependencies.
+#add_subdirectory(external/pico-extras)
+#add_subdirectory(external/pico-displayDrivs/st7789)
+#add_subdirectory(external/pico-displayDrivs/gfx)
 
 # Pull in common dependencies
-target_link_libraries(slab pico_stdlib pico_unique_id tinyusb_device tinyusb_board pico_multicore hardware_gpio hardware_i2c squirrel pico_pca9555 hardware_pio pico_flash hardware_exception hardware_flash)
-
-# Enable UART output
-pico_enable_stdio_uart(slab 1)
+target_link_libraries(
+        dc32_badge
+        pico_stdlib
+        #pico_unique_id
+        pico_multicore
+        hardware_gpio
+        hardware_pio
+        #pico_flash
+        #hardware_exception
+        #hardware_flash
+        #st7789
+        #gfx
+        #hardware_pwm
+        )
 
 # Create map/bin/hex file etc.
-pico_add_extra_outputs(slab)
+pico_add_extra_outputs(dc32_badge)

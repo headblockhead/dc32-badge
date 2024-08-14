@@ -1,12 +1,10 @@
-[submodule "external/squirrel"]
-	path = external/squirrel
-	url = https://github.com/headblockhead/squirrel.git
 [submodule "external/pico-sdk"]
 	path = external/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
-[submodule "external/pico_pca9555"]
-	path = external/pico_pca9555
-	url = https://github.com/headblockhead/pico_pca9555.git
-[submodule "external/pico-ssd1306"]
-	path = external/pico-ssd1306
-	url = https://github.com/AberDerBart/pico-ssd1306.git
+
+[submodule "external/pico-displayDrivs"]
+	path = external/pico-displayDrivs
+	url = https://github.com/rprouse/pico-displayDrivs.git
+[submodule "external/pico-extras"]
+	path = external/pico-extras
+	url = https://github.com/raspberrypi/pico-extras.git
