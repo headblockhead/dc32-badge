@@ -1,7 +1,7 @@
 # dc32_badge custom firmware
 Custom firmware built from scratch for the Defcon 32 badge. Work-in-progress.
 
-## Referances
+## References
 
 ### Pinout
 

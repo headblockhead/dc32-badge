@@ -45,26 +45,14 @@ target_include_directories(dc32_badge PUBLIC
 # Generate the PIO header files
 pico_generate_pio_header(dc32_badge ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
-
-#add_subdirectory(external/pico-extras)
-#add_subdirectory(external/pico-displayDrivs/st7789)
-#add_subdirectory(external/pico-displayDrivs/gfx)
-
 # Pull in common dependencies
 target_link_libraries(
         dc32_badge
         pico_stdlib
-        #pico_unique_id
         pico_multicore
         hardware_gpio
         hardware_pio
-        #pico_flash
-        #hardware_exception
-        #hardware_flash
-        #st7789
-        #gfx
-        #hardware_pwm
-        )
+                )
 
 # Create map/bin/hex file etc.
 pico_add_extra_outputs(dc32_badge)
