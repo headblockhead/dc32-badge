@@ -24,7 +24,7 @@ jobs:
       run: git submodule update --init
 
     - name: Checkout pico-sdk submodules
-      working-directory: ${{github.workspace}}/dc32-badge/pico-sdk
+      working-directory: ${{github.workspace}}/pico-sdk
       run: git submodule update --init
 
     - name: Create Build Environment
