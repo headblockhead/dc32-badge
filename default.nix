@@ -23,6 +23,7 @@ stdenv.mkDerivation {
   buildInputs = [ python39 ];
 
   cmakeFlags = [
+    "-DCMAKE_BUILD_TYPE=Release"
     "-DPICO_PLATFORM=rp2350"
     "-DCMAKE_C_COMPILER=${gcc-arm-embedded}/bin/arm-none-eabi-gcc"
     "-DCMAKE_CXX_COMPILER=${gcc-arm-embedded}/bin/arm-none-eabi-g++"
