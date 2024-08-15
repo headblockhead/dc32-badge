@@ -1,3 +1,6 @@
+# Nix ignores
+result
+
 # CMake ignores
 CMakeLists.txt.user
 CMakeCache.txt
