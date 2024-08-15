@@ -23,7 +23,7 @@
           };
         in
         {
-          # Developmnt shell (nix develop)
+          # Development shell (nix develop)
           devShells.default = pkgs.mkShell {
             buildInputs = with pkgs; [
               xc
@@ -41,7 +41,7 @@
               cacert
             ];
           };
-          # Build
+          # The firmware (nix build)
           packages.dc32-badge = pkgs.callPackage ./default.nix { };
         }
       );

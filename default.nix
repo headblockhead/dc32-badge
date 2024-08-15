@@ -11,6 +11,12 @@ stdenv.mkDerivation {
   pname = "dc32-badge";
   version = "0.0.0";
 
+  #  src = fetchGit {
+  #url = "https://github.com/headblockhead/dc32-badge.git";
+  #rev = "b9334c65192a429c707232ab27a862fde68ef982";
+  #submodules = true;
+  #};
+
   src = ./.;
 
   nativeBuildInputs = [ cmake gnumake gcc-arm-embedded picotool ];
